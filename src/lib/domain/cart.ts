@@ -76,7 +76,7 @@ export function addCourtToCart<T extends CourtSelection>(courts: readonly T[], s
   )
 
   if (conflict) {
-    throw new Error('That court and time is already in your cart')
+    throw new Error('That court and time is already in your booking')
   }
 
   return [...courts, selection]

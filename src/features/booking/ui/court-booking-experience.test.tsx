@@ -90,7 +90,7 @@ describe('CourtBookingExperience', () => {
     // Assert — the CTA carries the total the customer is about to be charged.
     const summary = screen.getByRole('region', { name: /your booking/i })
     expect(within(summary).getByText('Court 1 — Center · 1 hr')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Add to cart — ₱600' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Add to booking — ₱600' })).toBeEnabled()
   })
 
   it('adds a chosen add-on to the running total', async () => {
@@ -103,7 +103,7 @@ describe('CourtBookingExperience', () => {
     await user.click(screen.getByRole('checkbox', { name: /paddle rental/i }))
 
     // Assert — 600 court + 200 paddle.
-    expect(screen.getByRole('button', { name: 'Add to cart — ₱800' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add to booking — ₱800' })).toBeInTheDocument()
   })
 
   it('takes a deselected add-on back off the total', async () => {
@@ -118,7 +118,7 @@ describe('CourtBookingExperience', () => {
     await user.click(paddle)
 
     // Assert
-    expect(screen.getByRole('button', { name: 'Add to cart — ₱600' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add to booking — ₱600' })).toBeInTheDocument()
   })
 
   it('switches between the timeline and the start-time grid', async () => {
@@ -150,10 +150,10 @@ describe('CourtBookingExperience', () => {
     await user.click(screen.getByRole('button', { name: /5:00 PM/ }))
 
     // Act
-    await user.click(screen.getByRole('button', { name: /add to cart/i }))
+    await user.click(screen.getByRole('button', { name: /add to booking/i }))
 
     // Assert
-    expect(screen.getByRole('status')).toHaveTextContent(/added to your cart/i)
+    expect(screen.getByRole('status')).toHaveTextContent(/added to your booking/i)
   })
 
   it('says so plainly when the day has no start times at all', () => {

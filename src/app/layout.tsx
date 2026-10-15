@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Bricolage_Grotesque, DM_Sans } from 'next/font/google'
+import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { CartProvider } from '@/features/cart/cart-provider'
 import './globals.css'
@@ -17,8 +18,9 @@ const bodyFont = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Pickleball Court Booking',
-  description: 'Book pickleball courts, add-ons, and café items in one session.',
+  title: 'Hassy Pickleball Court',
+  description:
+    'Rally. Dink. Let’s begin. Book courts, add-ons, and café items at Hassy Pickleball Court.',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -35,6 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               than wrapping. `w-full` pins every page to the viewport and lets
               the scroll strips inside it do the scrolling. */}
           <div className="w-full min-w-0 flex-1">{children}</div>
+          <SiteFooter />
         </CartProvider>
       </body>
     </html>

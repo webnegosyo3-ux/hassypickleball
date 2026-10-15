@@ -137,7 +137,7 @@ export function CourtBookingExperience({
       }
     }
 
-    setConfirmation(`${courtName} added to your cart.`)
+    setConfirmation(`${courtName} added to your booking.`)
     setSelected(null)
     setChosenAddonIds([])
   }
@@ -264,7 +264,7 @@ export function CourtBookingExperience({
           onClick={handleAdd}
           className="rounded-[10px] bg-navy px-4 py-3 text-[14px] font-bold text-white disabled:cursor-not-allowed disabled:bg-line-heavy disabled:text-muted"
         >
-          {quote.hasCourt ? `Add to cart — ${quote.total}` : 'Select a start time'}
+          {quote.hasCourt ? `Add to booking — ${quote.total}` : 'Select a start time'}
         </button>
 
         <p className="text-center text-[12.5px] text-muted">

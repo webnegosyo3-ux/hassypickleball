@@ -2,7 +2,7 @@ import 'server-only'
 
 import { err, ok, type Result } from '@/lib/api/result'
 import { buildPaymentProofPath } from '@/lib/domain/payment-proof'
-import { signStoredImageUrl, uploadImage } from '@/lib/imagekit/client'
+import { signStoredImageUrl, uploadImage } from '@/lib/storage/client'
 
 /**
  * Where proofs of payment live.
@@ -46,7 +46,7 @@ export async function uploadPaymentProof(upload: ProofUpload): Promise<Result<st
 }
 
 /** A time-boxed link for staff reviewing a payment in the admin console. */
-export function signPaymentProofUrl(path: string): Result<string> {
+export function signPaymentProofUrl(path: string): Promise<Result<string>> {
   return signStoredImageUrl(path)
 }
 

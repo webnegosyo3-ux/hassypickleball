@@ -7,8 +7,6 @@ const VALID = {
   NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key',
   SUPABASE_SERVICE_ROLE_KEY: 'service-key',
-  NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: 'https://ik.imagekit.io/testendpoint',
-  IMAGEKIT_PRIVATE_KEY: 'private-key',
 }
 
 beforeEach(() => {
@@ -24,16 +22,11 @@ describe('readPublicEnv', () => {
     expect(readPublicEnv()).toEqual({
       NEXT_PUBLIC_SUPABASE_URL: VALID.NEXT_PUBLIC_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: VALID.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: VALID.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
     })
   })
 
   it('does not expose the service-role key', () => {
     expect(readPublicEnv()).not.toHaveProperty('SUPABASE_SERVICE_ROLE_KEY')
-  })
-
-  it('does not expose the ImageKit private key', () => {
-    expect(readPublicEnv()).not.toHaveProperty('IMAGEKIT_PRIVATE_KEY')
   })
 
   it('throws when the URL is missing rather than returning undefined', () => {
@@ -70,31 +63,6 @@ describe('readServerEnv', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY
 
     expect(() => readServerEnv()).toThrow(/SUPABASE_SERVICE_ROLE_KEY/)
-  })
-})
-
-/**
- * ImageKit holds both the catalog images and the payment proofs, so a
- * deployment missing its keys cannot take a booking that requires a
- * screenshot. Better to refuse to boot than to discover it at checkout.
- */
-describe('ImageKit configuration', () => {
-  it('throws when the private key is missing', () => {
-    delete process.env.IMAGEKIT_PRIVATE_KEY
-
-    expect(() => readServerEnv()).toThrow(/IMAGEKIT_PRIVATE_KEY/)
-  })
-
-  it('throws when the URL endpoint is missing', () => {
-    delete process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT
-
-    expect(() => readServerEnv()).toThrow(/NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT/)
-  })
-
-  it('rejects a URL endpoint that is not an http(s) URL', () => {
-    process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT = 'ik.imagekit.io/testendpoint'
-
-    expect(() => readPublicEnv()).toThrow(/NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT/)
   })
 })
 

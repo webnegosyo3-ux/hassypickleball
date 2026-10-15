@@ -4,7 +4,7 @@ import { uploadCatalogImage } from './media'
 const uploadImage = vi.fn()
 const withStaff = vi.fn()
 
-vi.mock('@/lib/imagekit/client', () => ({
+vi.mock('@/lib/storage/client', () => ({
   uploadImage: (...args: unknown[]) => uploadImage(...args),
 }))
 

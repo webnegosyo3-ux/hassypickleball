@@ -63,7 +63,7 @@ function renderHeader() {
 
 /** The header's cart control, by the accessible name it carries in every state. */
 function cartButton() {
-  return screen.getByRole('button', { name: /^cart/i })
+  return screen.getByRole('button', { name: /^booking/i })
 }
 
 beforeEach(() => {
@@ -92,16 +92,10 @@ describe('SiteHeader', () => {
     expect(screen.getByRole('link', { name: /pickleball/i })).toHaveAttribute('href', '/')
   })
 
-  it('links the catalog at the storefront root', () => {
-    renderHeader()
-
-    expect(screen.getByRole('link', { name: 'Courts' })).toHaveAttribute('href', '/')
-  })
-
   it('describes an empty cart in words rather than showing a zero badge', () => {
     renderHeader()
 
-    expect(cartButton()).toHaveAccessibleName('Cart empty')
+    expect(cartButton()).toHaveAccessibleName('Booking empty')
   })
 
   it('counts booked courts and add-on quantities together', async () => {
@@ -111,7 +105,7 @@ describe('SiteHeader', () => {
     await user.click(screen.getByRole('button', { name: 'seed court' }))
     await user.click(screen.getByRole('button', { name: 'seed items' }))
 
-    expect(cartButton()).toHaveAccessibleName('Cart 3 items')
+    expect(cartButton()).toHaveAccessibleName('Booking 3 items')
   })
 
   it('says "1 item" rather than "1 items" for a single selection', async () => {
@@ -120,7 +114,7 @@ describe('SiteHeader', () => {
 
     await user.click(screen.getByRole('button', { name: 'seed court' }))
 
-    expect(cartButton()).toHaveAccessibleName('Cart 1 item')
+    expect(cartButton()).toHaveAccessibleName('Booking 1 item')
   })
 
   it('opens the cart drawer when the cart is pressed', async () => {
@@ -129,7 +123,7 @@ describe('SiteHeader', () => {
 
     await user.click(cartButton())
 
-    expect(screen.getByRole('dialog', { name: /your cart/i })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: /your booking/i })).toBeInTheDocument()
   })
 
   it('shows what is in the cart once opened', async () => {
@@ -209,7 +203,7 @@ describe('SiteHeader', () => {
       renderHeader()
 
       // Assert
-      expect(screen.queryByRole('button', { name: /^cart/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^booking/i })).not.toBeInTheDocument()
     })
 
     it('keeps the header on a storefront route that merely starts with the same letters', () => {

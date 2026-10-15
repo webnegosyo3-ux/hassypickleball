@@ -8,6 +8,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ADMIN_NAV_ITEMS, isNavItemActive } from './nav-items'
@@ -200,12 +201,13 @@ function ClubHomeLink({ clubName }: Pick<AdminNavProps, 'clubName'>) {
       data-admin-nav-focus="brand"
       className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-white hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:order-1 lg:mr-1 lg:min-h-0 lg:flex-none"
     >
-      <span
-        aria-hidden
-        className="grid size-[30px] flex-none place-items-center rounded-[9px] bg-lime font-[family-name:var(--font-display)] text-[16px] font-extrabold text-navy"
-      >
-        P
-      </span>
+      <Image
+        src="/logo.jpg"
+        alt=""
+        width={36}
+        height={36}
+        className="size-9 flex-none rounded-full bg-white"
+      />
       <span className="truncate font-[family-name:var(--font-display)] text-[17px] font-bold tracking-[-0.02em] lg:text-[18px]">
         {clubName}
       </span>

@@ -97,7 +97,7 @@ describe('addCourtToCart', () => {
           endsAt: new Date('2026-03-16T03:30:00Z'),
         }),
       ),
-    ).toThrow(/already in your cart/i)
+    ).toThrow(/already in your booking/i)
   })
 
   it('allows the same time on a different court', () => {

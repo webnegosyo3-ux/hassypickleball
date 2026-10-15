@@ -2,18 +2,9 @@ import type { NextConfig } from 'next'
 
 type RemotePatterns = NonNullable<NonNullable<NextConfig['images']>['remotePatterns']>
 
-/**
- * Images now come from ImageKit, but rows seeded before the move still point at
- * Supabase Storage. next/image refuses to optimise a remote host that is not
- * listed here — an unlisted host throws at render and takes the catalog down
- * with it — so both hosts stay allowlisted until the seed data is backfilled.
- */
+/** Catalog images live in Supabase Storage; next/image refuses unlisted remote hosts. */
 function supabaseImageHost(): RemotePatterns {
   return hostPattern(process.env.NEXT_PUBLIC_SUPABASE_URL, '/storage/v1/object/public/**')
-}
-
-function imagekitImageHost(): RemotePatterns {
-  return hostPattern(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT, '/**')
 }
 
 function hostPattern(url: string | undefined, pathname: string): RemotePatterns {
@@ -39,7 +30,7 @@ function hostPattern(url: string | undefined, pathname: string): RemotePatterns 
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [...supabaseImageHost(), ...imagekitImageHost()],
+    remotePatterns: supabaseImageHost(),
   },
 
   /**

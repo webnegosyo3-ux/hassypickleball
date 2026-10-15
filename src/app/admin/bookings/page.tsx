@@ -29,17 +29,17 @@ type BookingsPageProps = {
  * a path that fails to sign is simply left out, and the panel renders no link
  * rather than one that 403s.
  */
-function signProofs(bookings: readonly BookingDetail[]): SignedProofUrls {
+async function signProofs(bookings: readonly BookingDetail[]): Promise<SignedProofUrls> {
   const paths = bookings.flatMap((detail) =>
     detail.payments.flatMap((payment) => (payment.proofUrl ? [payment.proofUrl] : [])),
   )
 
-  return Object.fromEntries(
-    [...new Set(paths)].flatMap((path) => {
-      const signed = signPaymentProofUrl(path)
+  const signed = await Promise.all(
+    [...new Set(paths)].map(async (path) => [path, await signPaymentProofUrl(path)] as const),
+  )
 
-      return signed.success ? [[path, signed.data] as const] : []
-    }),
+  return Object.fromEntries(
+    signed.flatMap(([path, result]) => (result.success ? [[path, result.data] as const] : [])),
   )
 }
 
@@ -57,11 +57,12 @@ export default async function AdminBookingsPage({ searchParams }: BookingsPagePr
   // empty panel, so the screen is useful the moment it loads.
   const asked = bookings.find((detail) => detail.booking.id === booking)
   const selected = asked ?? bookings.at(-1)
+  const proofUrls = selected ? await signProofs([selected]) : {}
 
   return (
     <BookingsScreen
       rows={toBookingRows(bookings, club)}
-      detail={selected ? toBookingDetailView(selected, club, signProofs([selected])) : null}
+      detail={selected ? toBookingDetailView(selected, club, proofUrls) : null}
       // A phone has no room for the ledger and the panel at once, so the
       // fallback selection stays closed there until someone opens a booking.
       isSelectionExplicit={asked !== undefined}

@@ -77,8 +77,8 @@ export function CourtCard({
 
 function GalleryCourtCard({ court, currency, openSlotCount }: CourtViewProps) {
   return (
-    <article className="flex flex-col overflow-hidden rounded-[18px] border border-line bg-surface transition hover:border-line-heavy">
-      <div className={`relative h-[220px] ${HERO_WELL}`}>
+    <article className="flex flex-col overflow-hidden rounded-[18px] border border-line bg-surface shadow-[0_1px_2px_rgba(10,18,48,0.04)] transition duration-200 hover:-translate-y-1 hover:border-navy-mid/40 hover:shadow-[0_18px_40px_-16px_rgba(23,70,201,0.35)]">
+      <div className={`relative h-[140px] ${HERO_WELL}`}>
         {court.heroImageUrl ? (
           <Image
             src={court.heroImageUrl}
@@ -97,10 +97,10 @@ function GalleryCourtCard({ court, currency, openSlotCount }: CourtViewProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3.5 px-[22px] pb-[22px] pt-5">
+      <div className="flex flex-1 flex-col gap-2.5 px-4 pb-4 pt-3.5">
         <div className="flex items-baseline justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="font-[family-name:var(--font-display)] text-[22px] font-bold tracking-[-0.02em]">
+            <h2 className="font-[family-name:var(--font-display)] text-[18px] font-bold tracking-[-0.02em]">
               {court.name}
             </h2>
             <p className="mt-[3px] text-[13px] text-muted">{court.surface}</p>
@@ -109,14 +109,14 @@ function GalleryCourtCard({ court, currency, openSlotCount }: CourtViewProps) {
             </p>
           </div>
           <div className="flex-none text-right">
-            <p className="font-[family-name:var(--font-display)] text-[22px] font-bold leading-none">
+            <p className="font-[family-name:var(--font-display)] text-[18px] font-bold leading-none">
               {formatMoney(court.basePriceCents, currency)}
             </p>
             <p className="mt-1 text-[12px] text-muted">per hour</p>
           </div>
         </div>
 
-        {court.blurb ? <p className="text-[14px] text-muted">{court.blurb}</p> : null}
+        {court.blurb ? <p className="text-[13px] text-muted">{court.blurb}</p> : null}
 
         {court.tags.length > 0 ? (
           <ul className="flex flex-wrap gap-[7px]">
@@ -138,7 +138,7 @@ function GalleryCourtCard({ court, currency, openSlotCount }: CourtViewProps) {
 
           <Link
             href={`/courts/${court.slug}`}
-            className="flex-none rounded-[10px] bg-navy px-5 py-3 text-[14px] font-bold text-white transition hover:bg-navy-deep hover:text-white"
+            className="flex-none rounded-[9px] bg-navy-mid px-4 py-2 text-[13px] font-bold text-white transition hover:bg-navy hover:text-white"
           >
             View &amp; book
           </Link>

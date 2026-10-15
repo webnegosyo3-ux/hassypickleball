@@ -1,33 +1,33 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens lifted from the Claude Design project
- * "Pickleball court booking platform" (Pickleball Platform.dc.html).
+ * Design tokens derived from the Hassy Pickleball Court logo
+ * (royal blue, near-black navy, white, optic-yellow ball).
  * The design is light-only by intent, so no dark-mode variants are defined.
  */
 @theme {
   /* Brand */
-  --color-navy: #0b2545;
-  --color-navy-deep: #123a66;
-  --color-navy-mid: #1d4e89;
-  --color-slate: #3c5570;
-  --color-lime: #dff56b;
+  --color-navy: #0a1230;
+  --color-navy-deep: #0f2766;
+  --color-navy-mid: #1746c9;
+  --color-slate: #3a4f7d;
+  --color-lime: #d9e43a;
   /* LIME_D in the design — the border on a selected slot or add-on. */
-  --color-lime-deep: #c3dc4a;
+  --color-lime-deep: #bccb1f;
   /* The tint behind a chosen add-on row. */
-  --color-lime-soft: #fbffee;
-  --color-olive: #7c9a00;
+  --color-lime-soft: #fafde6;
+  --color-olive: #1746c9;
 
   /* Text */
-  --color-ink: #0b2545;
+  --color-ink: #0a1230;
   --color-muted: #5b6b7c;
   --color-subtle: #8695a5;
 
   /* Surfaces */
-  --color-canvas: #f4f6f9;
+  --color-canvas: #f3f6fc;
   --color-surface: #ffffff;
   --color-surface-alt: #f8fafc;
-  --color-surface-sunken: #edf1f5;
+  --color-surface-sunken: #eaf0fa;
 
   /* Borders */
   --color-line: #e4e9ef;

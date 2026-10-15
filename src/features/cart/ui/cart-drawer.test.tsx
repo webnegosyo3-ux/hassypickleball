@@ -66,7 +66,7 @@ describe('CartDrawer', () => {
   it('exposes the open panel as a modal dialog named for the cart', () => {
     renderDrawer({ courts: [COURT] })
 
-    const dialog = screen.getByRole('dialog', { name: /your cart/i })
+    const dialog = screen.getByRole('dialog', { name: /your booking/i })
 
     expect(dialog).toHaveAttribute('aria-modal', 'true')
   })
@@ -74,7 +74,7 @@ describe('CartDrawer', () => {
   it('says the cart is empty rather than showing a bare panel', () => {
     renderDrawer()
 
-    expect(screen.getByRole('dialog')).toHaveTextContent(/your cart is empty/i)
+    expect(screen.getByRole('dialog')).toHaveTextContent(/your booking is empty/i)
   })
 
   it('names the booked court', () => {
@@ -104,7 +104,7 @@ describe('CartDrawer', () => {
     await user.click(screen.getByRole('button', { name: 'Remove Court 3' }))
 
     expect(screen.queryByText('Court 3')).not.toBeInTheDocument()
-    expect(screen.getByRole('dialog')).toHaveTextContent(/your cart is empty/i)
+    expect(screen.getByRole('dialog')).toHaveTextContent(/your booking is empty/i)
   })
 
   it('removes only the pressed court when the same court is held at two times', async () => {
@@ -157,7 +157,7 @@ describe('CartDrawer', () => {
     const user = userEvent.setup()
     const { onClose } = renderDrawer({ courts: [COURT] })
 
-    await user.click(screen.getByRole('button', { name: /close cart/i }))
+    await user.click(screen.getByRole('button', { name: /close booking/i }))
 
     expect(onClose).toHaveBeenCalledTimes(1)
   })
@@ -174,7 +174,7 @@ describe('CartDrawer', () => {
   it('moves focus into the panel on open so the keyboard lands inside the dialog', () => {
     renderDrawer({ courts: [COURT] })
 
-    expect(screen.getByRole('button', { name: /close cart/i })).toHaveFocus()
+    expect(screen.getByRole('button', { name: /close booking/i })).toHaveFocus()
   })
 })
 

@@ -93,7 +93,10 @@ describe('CourtsBrowse', () => {
   it('prices courts in the club currency', () => {
     render(<CourtsBrowse club={club({ currency: 'USD' })} courts={[court()]} />)
 
-    expect(screen.getByText(/\$900/)).toBeInTheDocument()
+    // The hero repeats the lowest price, so look inside the court's own card.
+    const card = screen.getByRole('heading', { name: 'Court 1 — Center' }).closest('article')
+
+    expect(within(card as HTMLElement).getByText(/\$900/)).toBeInTheDocument()
   })
 
   it('offers a gallery and a compact view of the same catalog', () => {

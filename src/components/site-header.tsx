@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRef, useState } from 'react'
@@ -41,33 +42,26 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-navy text-white">
-      <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center gap-2 px-4 sm:gap-4 sm:px-7">
+    <header className="sticky top-0 z-40 border-b-2 border-navy-mid bg-navy/95 text-white backdrop-blur">
+      <div className="mx-auto flex h-[72px] w-full max-w-[1280px] items-center gap-2 px-4 sm:gap-4 sm:px-7">
         {/* The mark and the wordmark are one link; the mark is decorative so
             the accessible name stays just the club name. */}
         <Link
           href="/"
           className="flex flex-none items-center gap-2 text-white hover:text-white sm:mr-2 sm:gap-2.5"
         >
-          <span
-            aria-hidden
-            className="grid size-[30px] place-items-center rounded-[9px] bg-lime font-[family-name:var(--font-display)] text-[16px] font-extrabold text-navy"
-          >
-            P
-          </span>
+          <Image
+            src="/logo.jpg"
+            alt=""
+            width={44}
+            height={44}
+            priority
+            className="size-11 flex-none rounded-full bg-white"
+          />
           <span className="font-[family-name:var(--font-display)] text-[18px] font-bold tracking-[-0.02em]">
-            Pickleball
+            Hassy Pickleball
           </span>
         </Link>
-
-        <nav aria-label="Main" className="flex flex-none items-center gap-1">
-          <Link
-            href="/"
-            className="rounded-lg bg-white/15 px-3 py-[7px] text-[13.5px] font-semibold text-white hover:text-white sm:px-3.5"
-          >
-            Courts
-          </Link>
-        </nav>
 
         <button
           ref={cartRef}
@@ -77,7 +71,7 @@ export function SiteHeader() {
           onClick={() => setIsCartOpen((wasOpen) => !wasOpen)}
           className="ml-auto flex flex-none items-center gap-2 rounded-[10px] border border-white/20 px-3 py-[7px] text-[13.5px] font-semibold text-white/85 hover:border-white/40 hover:text-white sm:px-3.5"
         >
-          Cart{' '}
+          Booking{' '}
           {count === 0 ? (
             // "empty" is the only droppable word in the bar; on the narrowest
             // phones the badge's absence already says the same thing.

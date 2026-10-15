@@ -8,7 +8,7 @@ import {
   type CatalogSubject,
   type ImageFile,
 } from '@/lib/domain/image-upload'
-import { uploadImage } from '@/lib/imagekit/client'
+import { uploadImage } from '@/lib/storage/client'
 
 /**
  * Catalog image uploads, for the product, court, and payment-method editors.

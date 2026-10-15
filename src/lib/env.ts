@@ -23,17 +23,10 @@ const httpUrl = z.string().refine(
 const publicEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: httpUrl,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  // Where images are delivered from. Public by design: it is the host in every
-  // <img> the site renders.
-  NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: httpUrl,
 })
 
 const serverEnvSchema = publicEnvSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  // Signs private proof URLs and authenticates uploads. Server only: it grants
-  // full control of the media library, so it must never be prefixed
-  // NEXT_PUBLIC_ or reach the browser.
-  IMAGEKIT_PRIVATE_KEY: z.string().min(1),
 })
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>
@@ -63,7 +56,6 @@ export function readPublicEnv(): PublicEnv {
   const parsed = publicEnvSchema.safeParse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: publishableKey(),
-    NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
   })
 
   if (!parsed.success) {
@@ -78,9 +70,7 @@ export function readServerEnv(): ServerEnv {
   const parsed = serverEnvSchema.safeParse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: publishableKey(),
-    NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
     SUPABASE_SERVICE_ROLE_KEY: secretKey(),
-    IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
   })
 
   if (!parsed.success) {

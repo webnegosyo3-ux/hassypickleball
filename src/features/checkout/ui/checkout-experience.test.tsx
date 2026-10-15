@@ -316,7 +316,7 @@ describe('CheckoutExperience', () => {
   it('sends an empty cart nowhere', () => {
     renderCheckout({ courts: [], items: [] })
 
-    expect(screen.getByText(/nothing to check out|cart is empty/i)).toBeInTheDocument()
+    expect(screen.getByText(/nothing to check out|booking is empty/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /confirm|place|pay/i })).not.toBeInTheDocument()
   })
 })

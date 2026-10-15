@@ -47,7 +47,7 @@ export function CourtBookingPanel({
       currency,
     })
 
-    setConfirmation(`${courtName} added to your cart.`)
+    setConfirmation(`${courtName} added to your booking.`)
     setSelected(null)
   }
 
@@ -75,7 +75,7 @@ export function CourtBookingPanel({
         className="rounded-[10px] bg-navy px-4 py-3 text-[14px] font-bold text-white disabled:cursor-not-allowed disabled:bg-line-heavy disabled:text-muted"
       >
         {selected
-          ? `Add to cart — ${formatMoney(selected.priceCents, currency)}`
+          ? `Add to booking — ${formatMoney(selected.priceCents, currency)}`
           : 'Select a start time'}
       </button>
 

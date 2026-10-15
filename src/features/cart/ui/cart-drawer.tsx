@@ -140,12 +140,12 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             id="cart-drawer-title"
             className="font-[family-name:var(--font-display)] text-[18px] font-bold tracking-[-0.02em] text-ink"
           >
-            Your cart
+            Your booking
           </h2>
           <button
             ref={closeRef}
             type="button"
-            aria-label="Close cart"
+            aria-label="Close booking"
             onClick={onClose}
             className="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface-sunken hover:text-ink"
           >
@@ -155,7 +155,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
         {isEmpty ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-1 px-8 text-center">
-            <p className="text-[15px] font-bold text-ink">Your cart is empty</p>
+            <p className="text-[15px] font-bold text-ink">Your booking is empty</p>
             <p className="text-[13px] text-muted">Pick a court and a start time to begin.</p>
           </div>
         ) : (

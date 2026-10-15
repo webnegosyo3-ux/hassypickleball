@@ -4,7 +4,7 @@ import { uploadPaymentProof, signPaymentProofUrl, PAYMENT_PROOF_FOLDER } from '.
 const uploadImage = vi.fn()
 const signStoredImageUrl = vi.fn()
 
-vi.mock('@/lib/imagekit/client', () => ({
+vi.mock('@/lib/storage/client', () => ({
   uploadImage: (...args: unknown[]) => uploadImage(...args),
   signStoredImageUrl: (...args: unknown[]) => signStoredImageUrl(...args),
 }))
@@ -18,7 +18,7 @@ const STORED = {
 beforeEach(() => {
   vi.clearAllMocks()
   uploadImage.mockResolvedValue({ success: true, data: STORED })
-  signStoredImageUrl.mockReturnValue({ success: true, data: 'https://signed.example/proof' })
+  signStoredImageUrl.mockResolvedValue({ success: true, data: 'https://signed.example/proof' })
 })
 
 describe('uploadPaymentProof', () => {
@@ -107,20 +107,20 @@ describe('uploadPaymentProof', () => {
 })
 
 describe('signPaymentProofUrl', () => {
-  it('returns a time-boxed link for the stored path', () => {
-    const result = signPaymentProofUrl(STORED.path)
+  it('returns a time-boxed link for the stored path', async () => {
+    const result = await signPaymentProofUrl(STORED.path)
 
     expect(signStoredImageUrl).toHaveBeenCalledWith(STORED.path)
     expect(result).toEqual({ success: true, data: 'https://signed.example/proof' })
   })
 
-  it('passes a signing failure through rather than throwing', () => {
-    signStoredImageUrl.mockReturnValue({
+  it('passes a signing failure through rather than throwing', async () => {
+    signStoredImageUrl.mockResolvedValue({
       success: false,
       error: 'Could not open that image',
       code: 'STORAGE_ERROR',
     })
 
-    expect(signPaymentProofUrl(STORED.path)).toMatchObject({ success: false })
+    expect(await signPaymentProofUrl(STORED.path)).toMatchObject({ success: false })
   })
 })

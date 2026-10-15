@@ -49,7 +49,6 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'http://localhost:54321')
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'anon-key')
-  vi.stubEnv('NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT', 'https://ik.imagekit.io/testendpoint')
   findClubBySlug.mockResolvedValue(CLUB)
   listActiveCourts.mockResolvedValue(COURTS)
 })
