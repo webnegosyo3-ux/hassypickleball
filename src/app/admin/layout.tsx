@@ -30,7 +30,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <>
       <AdminNav clubName={CLUB_NAME} staffName={access.staff.fullName} />
-      {children}
+      {/* From `lg` the nav is a fixed 15rem sidebar; the pages sit to its right. */}
+      <div className="lg:pl-60">{children}</div>
     </>
   )
 }

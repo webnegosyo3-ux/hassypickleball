@@ -3,11 +3,11 @@
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
-/** The admin console has its own chrome, so the storefront footer stands down. */
+/** The console and staff sign-in have their own chrome, so the storefront footer stands down. */
 export function SiteFooter() {
   const pathname = usePathname()
 
-  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+  if (['/admin', '/staff'].some((root) => pathname === root || pathname.startsWith(`${root}/`))) {
     return null
   }
 

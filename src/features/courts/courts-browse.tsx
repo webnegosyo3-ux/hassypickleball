@@ -14,7 +14,9 @@ type CourtsBrowseProps = {
   readonly openSlotsByCourt?: Readonly<Record<string, number>>
 }
 
-const CHIP_BASE = 'rounded-lg border px-3.5 py-2 text-[13.5px] font-semibold transition'
+// A wrapping row of chips on a phone, a stacked left-hand list from `lg` up.
+const CHIP_BASE =
+  'rounded-lg border px-3.5 py-2 text-[13.5px] font-semibold transition lg:flex lg:items-center lg:justify-between lg:px-4 lg:py-2.5'
 const CHIP_ACTIVE = `${CHIP_BASE} border-navy-mid bg-navy-mid text-white hover:text-white`
 const CHIP_IDLE = `${CHIP_BASE} border-line bg-surface text-slate hover:border-navy-mid hover:text-navy-mid`
 
@@ -86,46 +88,61 @@ export function CourtsBrowse({
           </nav>
         </header>
 
-        <nav aria-label="Filter courts" className="mb-[26px] flex flex-wrap gap-2.5">
-          {COURT_FILTERS.map((option) => {
-            const isActive = option.id === filter
+        <div className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start lg:gap-8">
+          <div className="lg:sticky lg:top-24">
+            <p className="mb-3 hidden text-[12px] font-bold uppercase tracking-[0.14em] text-olive lg:block">
+              Categories
+            </p>
+            <nav
+              aria-label="Filter courts"
+              className="mb-[26px] flex flex-wrap gap-2.5 lg:mb-0 lg:flex-col lg:gap-2"
+            >
+              {COURT_FILTERS.map((option) => {
+                const isActive = option.id === filter
 
-            return (
-              <Link
-                key={option.id}
-                href={buildCatalogHref({ filter: option.id, layout })}
-                aria-current={isActive ? 'page' : undefined}
-                className={isActive ? CHIP_ACTIVE : CHIP_IDLE}
-              >
-                {option.label}
-              </Link>
-            )
-          })}
-        </nav>
-
-        {visible.length === 0 ? (
-          <p className="rounded-[14px] border border-line bg-surface px-5 py-8 text-center text-muted">
-            No courts match that filter.
-          </p>
-        ) : (
-          <div
-            className={
-              layout === 'compact'
-                ? 'flex flex-col gap-3'
-                : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
-            }
-          >
-            {visible.map((court) => (
-              <CourtCard
-                key={court.id}
-                court={court}
-                currency={club.currency}
-                layout={layout}
-                openSlotCount={openSlotsByCourt?.[court.id]}
-              />
-            ))}
+                return (
+                  <Link
+                    key={option.id}
+                    href={buildCatalogHref({ filter: option.id, layout })}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={isActive ? CHIP_ACTIVE : CHIP_IDLE}
+                  >
+                    <span>{option.label}</span>
+                    <span aria-hidden className="hidden text-[12px] font-bold opacity-70 lg:inline">
+                      {filterCourts(courts, option.id).length}
+                    </span>
+                  </Link>
+                )
+              })}
+            </nav>
           </div>
-        )}
+
+          <div>
+            {visible.length === 0 ? (
+              <p className="rounded-[14px] border border-line bg-surface px-5 py-8 text-center text-muted">
+                No courts match that filter.
+              </p>
+            ) : (
+              <div
+                className={
+                  layout === 'compact'
+                    ? 'flex flex-col gap-3'
+                    : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+                }
+              >
+                {visible.map((court) => (
+                  <CourtCard
+                    key={court.id}
+                    court={court}
+                    currency={club.currency}
+                    layout={layout}
+                    openSlotCount={openSlotsByCourt?.[court.id]}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </main>
     </>
   )

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { signInWithEmailAndPassword } from '@/app/actions/auth'
+import { AuthShell } from '@/features/admin/ui/auth-shell'
 import { StaffSignInForm } from '@/features/admin/ui/staff-sign-in-form'
 import { getCurrentStaff } from '@/lib/auth/staff'
 
@@ -15,17 +16,15 @@ export default async function StaffSignInPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col justify-center px-6 py-16">
-      <h1 className="mb-2 font-[family-name:var(--font-display)] text-[28px] font-bold tracking-[-0.03em]">
+    <AuthShell>
+      <h1 className="mb-1.5 mt-0 font-[family-name:var(--font-display)] text-[26px] font-bold tracking-[-0.03em]">
         Staff sign-in
       </h1>
       <p className="mt-0 mb-6 text-[14px] text-muted">
         Sign in with your work email to reach the admin console.
       </p>
 
-      <div className="rounded-[14px] border border-line bg-surface px-6 py-6">
-        <StaffSignInForm onSubmit={signInWithEmailAndPassword} />
-      </div>
-    </main>
+      <StaffSignInForm onSubmit={signInWithEmailAndPassword} />
+    </AuthShell>
   )
 }

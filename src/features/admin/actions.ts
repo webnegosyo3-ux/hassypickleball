@@ -13,6 +13,7 @@ import { markBookingPaid, refundBookingPayment, type PaidResult } from './server
 import { setBookingStatus } from './server/bookings'
 import { blockCourtTime, removeCourtBlock } from './server/blocks'
 import { saveProduct } from './server/catalog'
+import { saveClubSettings } from './server/club'
 import { saveCourt } from './server/courts'
 import { uploadCatalogImage, type UploadedCatalogImage } from './server/media'
 import {
@@ -21,7 +22,7 @@ import {
   type MovedPaymentMethod,
 } from './server/payment-methods'
 import type { AvailabilityBlock, Booking, Payment } from '@/lib/repositories/booking-mappers'
-import type { Court, PaymentMethod, Product } from '@/lib/repositories/mappers'
+import type { Club, Court, PaymentMethod, Product } from '@/lib/repositories/mappers'
 import type { Result } from '@/lib/api/result'
 
 export async function markBookingPaidAction(input: unknown): Promise<Result<PaidResult>> {
@@ -46,6 +47,10 @@ export async function removeCourtBlockAction(input: unknown): Promise<Result<{ b
 
 export async function saveProductAction(input: unknown): Promise<Result<Product>> {
   return saveProduct(input)
+}
+
+export async function saveClubSettingsAction(input: unknown): Promise<Result<Club>> {
+  return saveClubSettings(input)
 }
 
 export async function saveCourtAction(input: unknown): Promise<Result<Court>> {

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AuthShell } from './auth-shell'
 
 /**
  * What a signed-in user without a staff row sees instead of the console.
@@ -12,29 +13,31 @@ import Link from 'next/link'
  * have not been authorised to ask.
  */
 
-const LINK_CLASS = 'text-[14px] font-bold text-navy underline underline-offset-4'
+const LINK_CLASS =
+  'flex h-12 items-center justify-center rounded-xl text-[14px] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-mid'
 
 export function NoStaffNotice() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col justify-center px-6 py-16">
-      <div className="rounded-[14px] border border-line bg-surface px-6 py-7">
-        <h1 className="mt-0 mb-2 font-[family-name:var(--font-display)] text-[24px] font-bold tracking-[-0.03em]">
-          This account has no admin access
-        </h1>
-        <p className="mt-0 mb-6 text-[14px] text-muted">
-          You are signed in, but the account you used is not set up as staff for this club. Ask an
-          administrator to add it, or sign in with the account that has access.
-        </p>
+    <AuthShell>
+      <h1 className="mt-0 mb-2 font-[family-name:var(--font-display)] text-[24px] font-bold tracking-[-0.03em]">
+        This account has no admin access
+      </h1>
+      <p className="mt-0 mb-6 text-[14px] text-muted">
+        You are signed in, but the account you used is not set up as staff for this club. Ask an
+        administrator to add it, or sign in with the account that has access.
+      </p>
 
-        <div className="flex flex-col gap-3">
-          <Link href="/staff/sign-in" className={LINK_CLASS}>
-            Sign in with a different account
-          </Link>
-          <Link href="/" className={LINK_CLASS}>
-            Back to the customer site
-          </Link>
-        </div>
+      <div className="flex flex-col gap-2.5">
+        <Link href="/staff/sign-in" className={`${LINK_CLASS} bg-navy text-white hover:bg-navy-deep`}>
+          Sign in with a different account
+        </Link>
+        <Link
+          href="/"
+          className={`${LINK_CLASS} border border-line-strong text-ink hover:border-line-heavy`}
+        >
+          Back to the customer site
+        </Link>
       </div>
-    </main>
+    </AuthShell>
   )
 }

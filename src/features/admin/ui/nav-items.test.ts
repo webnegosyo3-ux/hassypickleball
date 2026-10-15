@@ -13,6 +13,7 @@ describe('ADMIN_NAV_ITEMS', () => {
       'Payment methods',
       'Customers',
       'Reports',
+      'Settings',
     ])
   })
 

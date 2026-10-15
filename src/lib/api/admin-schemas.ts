@@ -241,3 +241,31 @@ export const productPatchSchema = productFieldsSchema
   .extend({ id: z.uuid(), isActive: z.boolean().optional() })
 
 export const createProductSchema = productFieldsSchema
+
+/** "HH:MM" or "HH:MM:SS", as a time input and Postgres both produce. */
+const CLOCK_TIME = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
+
+/**
+ * The club-wide settings behind the storefront: name, desk phone, opening
+ * hours, and the booking rules every court inherits.
+ */
+export const clubSettingsSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Enter the club name').max(120),
+    phone: z.string().trim().max(40).nullish(),
+    opensAt: z.string().regex(CLOCK_TIME, 'Enter a valid opening time'),
+    closesAt: z.string().regex(CLOCK_TIME, 'Enter a valid closing time'),
+    slotMinutes: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+    minDurationMinutes: z.number().int().min(15).max(1440),
+    maxDurationMinutes: z.number().int().min(15).max(1440),
+    cancellationWindowHours: z.number().int().min(0).max(168),
+    groupBookingNote: z.string().trim().max(1000).nullish(),
+  })
+  .refine((club) => club.closesAt > club.opensAt, {
+    message: 'Closing time must be after opening time',
+    path: ['closesAt'],
+  })
+  .refine((club) => club.maxDurationMinutes >= club.minDurationMinutes, {
+    message: 'Longest booking cannot be shorter than the shortest',
+    path: ['maxDurationMinutes'],
+  })

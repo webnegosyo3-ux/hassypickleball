@@ -8,10 +8,13 @@ import { useCart } from '@/features/cart/cart-provider'
 import { CART_DRAWER_ID, CartDrawer } from '@/features/cart/ui/cart-drawer'
 
 const ADMIN_ROOT = '/admin'
+const STAFF_ROOT = '/staff'
 
-/** The admin console brings its own nav, so the storefront chrome stands down. */
+/** The console and staff sign-in bring their own chrome, so the storefront's stands down. */
 function isAdminRoute(pathname: string) {
-  return pathname === ADMIN_ROOT || pathname.startsWith(`${ADMIN_ROOT}/`)
+  return [ADMIN_ROOT, STAFF_ROOT].some(
+    (root) => pathname === root || pathname.startsWith(`${root}/`),
+  )
 }
 
 /**

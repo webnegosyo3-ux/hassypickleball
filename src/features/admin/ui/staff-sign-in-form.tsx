@@ -27,8 +27,11 @@ type FormState =
   | { readonly status: 'idle' | 'signing-in' }
   | { readonly status: 'error'; readonly message: string }
 
-const FIELD_CLASS = 'rounded-[9px] border border-line-strong bg-surface px-3.5 py-2.5 text-[14px]'
-const LABEL_CLASS = 'text-[13px] font-bold text-muted'
+// 16px text: anything smaller makes iOS Safari zoom the page when a field is focused.
+const FIELD_CLASS =
+  'h-12 w-full rounded-xl border border-line-strong bg-surface px-3.5 text-[16px] text-ink ' +
+  'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-navy-mid'
+const LABEL_CLASS = 'text-[13px] font-bold text-ink'
 
 export function StaffSignInForm({ onSubmit }: StaffSignInFormProps) {
   const [email, setEmail] = useState('')
@@ -46,7 +49,7 @@ export function StaffSignInForm({ onSubmit }: StaffSignInFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
       <label htmlFor="staff-email" className={LABEL_CLASS}>
         Work email
       </label>
@@ -61,7 +64,7 @@ export function StaffSignInForm({ onSubmit }: StaffSignInFormProps) {
         className={FIELD_CLASS}
       />
 
-      <label htmlFor="staff-password" className={LABEL_CLASS}>
+      <label htmlFor="staff-password" className={`${LABEL_CLASS} mt-2`}>
         Password
       </label>
       <input
@@ -78,13 +81,13 @@ export function StaffSignInForm({ onSubmit }: StaffSignInFormProps) {
       <button
         type="submit"
         disabled={state.status === 'signing-in'}
-        className="rounded-[9px] bg-navy px-4 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+        className="mt-4 h-12 rounded-xl bg-navy px-4 text-[15px] font-bold text-white hover:bg-navy-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-mid disabled:opacity-60"
       >
         {state.status === 'signing-in' ? 'Signing in…' : 'Sign in'}
       </button>
 
       {state.status === 'error' ? (
-        <p role="alert" className="m-0 text-[13.5px] font-semibold text-danger">
+        <p role="alert" className="m-0 mt-1 text-[13.5px] font-semibold text-danger">
           {state.message}
         </p>
       ) : null}

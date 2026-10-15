@@ -28,7 +28,7 @@ const CURRENT_SECTION_FOCUS = 'current-section'
 const MOBILE_NAV_LINK =
   'flex h-11 flex-none snap-center items-center border-b-2 px-3.5 text-[14px] font-semibold whitespace-nowrap ' +
   'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-navy ' +
-  'lg:h-auto lg:rounded-lg lg:border-b-0 lg:px-3.5 lg:py-[7px] lg:text-[13.5px] lg:focus-visible:outline-white'
+  'lg:h-auto lg:w-full lg:rounded-lg lg:border-b-0 lg:px-3.5 lg:py-2.5 lg:text-[14.5px] lg:focus-visible:outline-white'
 
 /**
  * Desktop width, plus the focus the nav has to carry across the switch: the
@@ -142,7 +142,7 @@ function MobileAdminNavRail({ isDesktop, pathname }: MobileAdminNavRailProps) {
         ref={viewportRef}
         aria-label="Admin sections"
         onScroll={updateBoundaries}
-        className="flex min-w-0 snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:order-3 lg:flex-1 lg:gap-1 lg:snap-none"
+        className="flex min-w-0 snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:order-3 lg:flex-1 lg:snap-none lg:flex-col lg:gap-1 lg:overflow-x-visible lg:overflow-y-auto"
       >
         {ADMIN_NAV_ITEMS.map((item) => {
           const isCurrent = isNavItemActive(pathname, item.href)
@@ -199,7 +199,7 @@ function ClubHomeLink({ clubName }: Pick<AdminNavProps, 'clubName'>) {
     <Link
       href="/admin"
       data-admin-nav-focus="brand"
-      className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-white hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:order-1 lg:mr-1 lg:min-h-0 lg:flex-none"
+      className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-white hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:order-1 lg:mb-1 lg:min-h-0 lg:flex-none"
     >
       <Image
         src="/logo.jpg"
@@ -225,7 +225,7 @@ function AdminBadge() {
 
 function AccountBlock({ staffName }: Pick<AdminNavProps, 'staffName'>) {
   return (
-    <div className="ml-auto flex min-w-0 flex-none items-center gap-1 sm:gap-3 lg:order-4 lg:gap-4">
+    <div className="ml-auto flex min-w-0 flex-none items-center gap-1 sm:gap-3 lg:order-4 lg:ml-0 lg:flex-col lg:items-start lg:gap-1 lg:border-t lg:border-white/10 lg:pt-4">
       <Link
         href="/"
         data-admin-nav-focus="customer-site"
@@ -261,8 +261,11 @@ export function AdminNav({ clubName, staffName }: AdminNavProps) {
   const isDesktop = useIsDesktopNav(headerRef)
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-40 bg-navy text-white">
-      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:h-16 lg:items-center lg:gap-4 lg:px-7">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-40 bg-navy text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-60 lg:overflow-y-auto"
+    >
+      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:h-full lg:max-w-none lg:flex-col lg:items-stretch lg:gap-3 lg:px-4 lg:py-5">
         {isDesktop ? (
           <>
             <ClubHomeLink clubName={clubName} />

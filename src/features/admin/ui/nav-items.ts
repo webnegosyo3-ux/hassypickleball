@@ -16,6 +16,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
   { label: 'Payment methods', href: '/admin/payment-methods' },
   { label: 'Customers', href: '/admin/customers' },
   { label: 'Reports', href: '/admin/reports' },
+  { label: 'Settings', href: '/admin/settings' },
 ]
 
 const CONSOLE_ROOT = '/admin'
