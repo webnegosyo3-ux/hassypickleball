@@ -78,19 +78,7 @@ values
   ('00000000-0000-4000-8000-000000000001', 'Protein bowl', null, 'cafe', 28000, true, 7),
   ('00000000-0000-4000-8000-000000000001', 'Banana bread slice', null, 'cafe', 12000, true, 8);
 
-insert into pricing_rules (club_id, label, days_of_week, starts_at_time, ends_at_time, kind, value_percent, priority)
-values
-  ('00000000-0000-4000-8000-000000000001', 'Weekday off-peak (before 4pm)',
-   array[1, 2, 3, 4, 5]::smallint[], '06:00', '16:00', 'percent_delta', -20.000, 10),
-  ('00000000-0000-4000-8000-000000000001', 'Weekday prime time (4pm onward)',
-   array[1, 2, 3, 4, 5]::smallint[], '16:00', '22:00', 'percent_delta', 15.000, 20),
-  ('00000000-0000-4000-8000-000000000001', 'Weekend surcharge',
-   array[0, 6]::smallint[], null, null, 'percent_delta', 25.000, 30);
-
-insert into pricing_rules (club_id, label, days_of_week, applies_to_tier, kind, value_percent, priority)
-values
-  ('00000000-0000-4000-8000-000000000001', 'Pro member discount',
-   '{}'::smallint[], 'pro', 'percent_delta', -15.000, 40);
+-- No pricing_rules seeded: courts charge their flat hourly rate at all times.
 
 -- How the club takes payment. Instructions are copy the guest reads at checkout.
 insert into payment_methods (
