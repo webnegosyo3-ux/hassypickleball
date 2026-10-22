@@ -48,6 +48,14 @@ export function parseClockTime(value: string): number {
   const hours = Number(match[1])
   const minutes = Number(match[2])
 
+  // 24:00 (and 24:00:00) is the ISO 8601 end-of-day sentinel: midnight at the
+  // close of the current day, i.e. exactly MINUTES_PER_DAY (1440) minutes
+  // since midnight. Databases such as Postgres store closing times this way
+  // when a venue closes at midnight, so we must accept it here.
+  if (hours === 24 && minutes === 0) {
+    return MINUTES_PER_DAY
+  }
+
   if (hours > 23 || minutes > 59) {
     throw new Error(`Invalid clock time: ${value}`)
   }
