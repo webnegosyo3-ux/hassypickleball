@@ -28,6 +28,7 @@ export type PricingRule = {
   readonly valueCents: number | null
   readonly valuePercent: number | null
   readonly priority: number
+  readonly isActive: boolean
 }
 
 export type CourtSelection = {

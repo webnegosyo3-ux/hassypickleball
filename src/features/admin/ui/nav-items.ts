@@ -12,6 +12,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
   // confirming on the other.
   { label: 'Bookings', href: '/admin/bookings' },
   { label: 'Courts', href: '/admin/courts' },
+  { label: 'Pricing', href: '/admin/pricing' },
   { label: 'Products', href: '/admin/products' },
   { label: 'Payment methods', href: '/admin/payment-methods' },
   { label: 'Customers', href: '/admin/customers' },

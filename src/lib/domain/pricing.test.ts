@@ -19,6 +19,7 @@ function rule(overrides: Partial<PricingRule> = {}): PricingRule {
     valueCents: null,
     valuePercent: 10,
     priority: 0,
+    isActive: true,
     ...overrides,
   }
 }

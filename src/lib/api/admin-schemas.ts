@@ -225,6 +225,52 @@ export const courtPatchSchema = courtFieldsSchema
     message: 'Choose at least one court detail to change',
   })
 
+/** \"HH:MM\" or \"HH:MM:SS\" */
+const CLOCK_TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
+
+const RATE_KINDS = ['fixed', 'amount_delta', 'percent_delta'] as const
+const DAYS_OF_WEEK = [0, 1, 2, 3, 4, 5, 6] as const
+
+const pricingRuleFieldsSchema = z.object({
+  label: z.string().trim().min(1, 'Enter a label').max(120),
+  startsAtTime: z
+    .string()
+    .regex(CLOCK_TIME_PATTERN, 'Enter a valid start time (HH:MM)')
+    .nullish(),
+  endsAtTime: z
+    .string()
+    .regex(CLOCK_TIME_PATTERN, 'Enter a valid end time (HH:MM)')
+    .nullish(),
+  daysOfWeek: z.array(z.number().int().min(0).max(6)).max(7),
+  kind: z.enum(RATE_KINDS),
+  valueCents: z.number().int().min(0, 'Price cannot be negative').nullish(),
+  valuePercent: z.number().min(-100).max(1000).nullish(),
+  priority: z.number().int().min(0).max(9999),
+  isActive: z.boolean(),
+})
+
+export const createPricingRuleSchema = pricingRuleFieldsSchema
+  .refine(
+    (r) =>
+      r.startsAtTime === undefined ||
+      r.startsAtTime === null ||
+      r.endsAtTime === undefined ||
+      r.endsAtTime === null ||
+      r.endsAtTime > r.startsAtTime,
+    { message: 'End time must be after start time', path: ['endsAtTime'] },
+  )
+  .refine(
+    (r) => {
+      if (r.kind === 'percent_delta') return r.valuePercent != null && r.valueCents == null
+      return r.valueCents != null && r.valuePercent == null
+    },
+    { message: 'Value must match the selected rate kind' },
+  )
+
+export const pricingRulePatchSchema = pricingRuleFieldsSchema
+  .partial()
+  .extend({ id: z.uuid() })
+
 const productFieldsSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).nullish(),

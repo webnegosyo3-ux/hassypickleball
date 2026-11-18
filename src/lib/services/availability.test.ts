@@ -100,6 +100,7 @@ describe('buildCourtAvailability', () => {
           valueCents: null,
           valuePercent: -50,
           priority: 10,
+          isActive: true,
         },
       ],
       tier: 'standard',

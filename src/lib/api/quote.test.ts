@@ -24,6 +24,7 @@ const weekendSurcharge: PricingRule = {
   valueCents: null,
   valuePercent: 25,
   priority: 10,
+  isActive: true,
 }
 
 describe('quoteSelections', () => {

@@ -207,6 +207,7 @@ export function toPricingRule(row: {
   value_cents: number | null
   value_percent: string | number | null
   priority: number
+  is_active: boolean
 }): PricingRule {
   return {
     id: row.id,
@@ -221,6 +222,7 @@ export function toPricingRule(row: {
     valueCents: row.value_cents,
     valuePercent: toNullableNumber(row.value_percent),
     priority: row.priority,
+    isActive: row.is_active,
   }
 }
 

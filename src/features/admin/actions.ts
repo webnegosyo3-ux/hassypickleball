@@ -9,6 +9,7 @@
  * withStaff, so an action that forgot the gate could not reach a repository.
  */
 
+import { savePricingRule, removePricingRule } from './server/pricing'
 import { markBookingPaid, refundBookingPayment, type PaidResult } from './server/payments'
 import { setBookingStatus } from './server/bookings'
 import { blockCourtTime, removeCourtBlock } from './server/blocks'
@@ -23,6 +24,7 @@ import {
 } from './server/payment-methods'
 import type { AvailabilityBlock, Booking, Payment } from '@/lib/repositories/booking-mappers'
 import type { Club, Court, PaymentMethod, Product } from '@/lib/repositories/mappers'
+import type { PricingRule } from '@/lib/domain/types'
 import type { Result } from '@/lib/api/result'
 
 export async function markBookingPaidAction(input: unknown): Promise<Result<PaidResult>> {
@@ -63,6 +65,14 @@ export async function savePaymentMethodAction(input: unknown): Promise<Result<Pa
 
 export async function movePaymentMethodAction(input: unknown): Promise<Result<MovedPaymentMethod>> {
   return movePublishedPaymentMethod(input)
+}
+
+export async function savePricingRuleAction(input: unknown): Promise<Result<PricingRule>> {
+  return savePricingRule(input)
+}
+
+export async function removePricingRuleAction(input: unknown): Promise<Result<{ id: string }>> {
+  return removePricingRule(input)
 }
 
 /** Takes FormData rather than a plain object: the payload is a file. */
