@@ -44,14 +44,28 @@ export async function uploadImage(upload: ImageUpload): Promise<Result<StoredIma
   const path = objectPath(`${upload.folder}/${upload.fileName}`)
 
   try {
-    const storage = createSupabaseAdminClient().storage.from(bucket)
+    const admin = createSupabaseAdminClient()
+    const storage = admin.storage.from(bucket)
+    const fileBody = Buffer.isBuffer(upload.body) ? upload.body : Buffer.from(upload.body)
+
     // One image per subject: re-submitting replaces rather than accumulating.
-    const { error } = await storage.upload(path, upload.body, {
+    let { error } = await storage.upload(path, fileBody, {
       contentType: upload.contentType,
       upsert: true,
     })
 
     if (error) {
+      console.warn(`[storage] Upload to '${bucket}/${path}' returned error:`, error.message ?? error)
+      await ensureBucket(admin, bucket, upload.isPrivate)
+      const retry = await storage.upload(path, fileBody, {
+        contentType: upload.contentType,
+        upsert: true,
+      })
+      error = retry.error
+    }
+
+    if (error) {
+      console.error(`[storage] Final upload failure for '${bucket}/${path}':`, error)
       return err('Could not store that image', 'STORAGE_ERROR')
     }
 
@@ -59,8 +73,31 @@ export async function uploadImage(upload: ImageUpload): Promise<Result<StoredIma
     const url = upload.isPrivate ? path : storage.getPublicUrl(path).data.publicUrl
 
     return ok({ path, url })
-  } catch {
+  } catch (errCatch) {
+    console.error(`[storage] Exception during uploadImage for '${bucket}/${path}':`, errCatch)
     return err('Could not reach the image store', 'STORAGE_ERROR')
+  }
+}
+
+async function ensureBucket(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  bucket: string,
+  isPrivate: boolean,
+): Promise<void> {
+  try {
+    const { data, error } = await admin.storage.getBucket(bucket)
+    if (!data || error) {
+      const { error: createError } = await admin.storage.createBucket(bucket, {
+        public: !isPrivate,
+        fileSizeLimit: 5242880,
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif'],
+      })
+      if (createError && !createError.message?.toLowerCase().includes('already exists')) {
+        console.warn(`[storage] createBucket error for '${bucket}':`, createError)
+      }
+    }
+  } catch (e) {
+    console.warn(`[storage] ensureBucket error for '${bucket}':`, e)
   }
 }
 

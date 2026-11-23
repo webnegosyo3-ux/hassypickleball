@@ -197,6 +197,7 @@ describe('toPricingRule', () => {
       valueCents: null,
       valuePercent: 25,
       priority: 30,
+      isActive: true,
     })
   })
 

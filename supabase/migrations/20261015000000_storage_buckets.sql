@@ -5,6 +5,8 @@
 --   payment-proofs   private — read only through short-lived signed URLs
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
-  ('catalog', 'catalog', true, 5242880, array['image/png', 'image/jpeg', 'image/webp']),
-  ('payment-proofs', 'payment-proofs', false, 5242880, array['image/png', 'image/jpeg', 'image/webp'])
-on conflict (id) do nothing;
+  ('catalog', 'catalog', true, 5242880, array['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif']),
+  ('payment-proofs', 'payment-proofs', false, 5242880, array['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif'])
+on conflict (id) do update set
+  allowed_mime_types = excluded.allowed_mime_types,
+  file_size_limit = excluded.file_size_limit;

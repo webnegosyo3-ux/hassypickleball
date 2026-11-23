@@ -162,13 +162,15 @@ async function storeProof(
     })
 
     if (!stored.success) {
+      console.error('[storeProof] uploadPaymentProof failed:', stored.error)
       return false
     }
 
     await attachPaymentProof(client, booking.id, stored.data)
 
     return true
-  } catch {
+  } catch (err) {
+    console.error('[storeProof] Failed to store payment proof:', err)
     return false
   }
 }
