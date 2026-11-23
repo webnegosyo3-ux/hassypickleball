@@ -7,6 +7,7 @@ import { findClubBySlug } from '@/lib/repositories/clubs'
 import { findCourtBySlug } from '@/lib/repositories/courts'
 import { listActiveProducts } from '@/lib/repositories/products'
 import { parseDayString, toDayStringInZone } from '@/lib/format/time'
+import { shiftDayString } from '@/lib/domain/time'
 import { formatMoney } from '@/lib/format/money'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -16,7 +17,7 @@ const DATE_STRIP_DAYS = 7
 
 type CourtPageProps = {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ day?: string; duration?: string }>
+  searchParams: Promise<{ day?: string; duration?: string; start?: string }>
 }
 
 /**
@@ -55,8 +56,14 @@ export default async function CourtPage({ params, searchParams }: CourtPageProps
     notFound()
   }
 
-  const day = parseDayString(query.day, toDayStringInZone(new Date(), club.timeZone))
+  const today = toDayStringInZone(new Date(), club.timeZone)
+  const day = parseDayString(query.day, today)
   const durationMinutes = parseDuration(query.duration, club)
+
+  // `start` is the first day shown in the date strip. It defaults to today and
+  // is never allowed to go earlier than today (booking the past is impossible).
+  const rawStart = parseDayString(query.start, today)
+  const stripStart = rawStart < today ? today : rawStart
 
   const [availability, products] = await Promise.all([
     getAvailability({ clubId: club.id, day, durationMinutes, courtId: court.id }),
@@ -75,11 +82,11 @@ export default async function CourtPage({ params, searchParams }: CourtPageProps
       priceCents: product.priceCents,
     }))
 
-  const dates = buildDateStrip({ selectedDay: day, timeZone: club.timeZone, days: DATE_STRIP_DAYS })
+  const dates = buildDateStrip({ selectedDay: day, startDay: stripStart, timeZone: club.timeZone, days: DATE_STRIP_DAYS })
   const durations = buildDurationOptions({ club, durationMinutes })
 
-  const hrefFor = (next: { day?: string; duration?: number }): string =>
-    `/courts/${court.slug}?day=${next.day ?? day}&duration=${next.duration ?? durationMinutes}`
+  const hrefFor = (next: { day?: string; duration?: number; start?: string }): string =>
+    `/courts/${court.slug}?day=${next.day ?? day}&duration=${next.duration ?? durationMinutes}&start=${next.start ?? stripStart}`
 
   return (
     <main className="mx-auto w-full max-w-[1280px] px-4 pb-16 pt-5 sm:px-7 sm:pb-20 sm:pt-7">
@@ -184,31 +191,55 @@ export default async function CourtPage({ params, searchParams }: CourtPageProps
           {/* Marked as a scroll strip so the mobile layout test knows its
               children are meant to sit outside the fold. The negative margin
               lets the row bleed to the card edge instead of ending mid-gap. */}
-          <nav
-            data-scroll-strip
-            aria-label="Booking day"
-            className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1 sm:mx-0 sm:px-0"
-          >
-            {dates.map((date) => (
+          <div className="flex items-center gap-2">
+            {/* Previous week — hidden when already at today so the past can't be reached. */}
+            {stripStart > today ? (
               <Link
-                key={date.day}
-                href={hrefFor({ day: date.day })}
-                aria-current={date.isSelected ? 'date' : undefined}
-                className={`flex-none rounded-[11px] border px-4 py-3 text-center ${
-                  date.isSelected
-                    ? 'border-navy bg-navy text-white'
-                    : 'border-line bg-surface text-slate hover:border-line-heavy'
-                }`}
+                href={hrefFor({ start: shiftDayString(stripStart, -DATE_STRIP_DAYS) < today ? today : shiftDayString(stripStart, -DATE_STRIP_DAYS) })}
+                aria-label="Previous week"
+                className="flex h-10 w-10 flex-none items-center justify-center rounded-[10px] border border-line bg-surface text-slate hover:border-line-heavy"
               >
-                <span className="block text-[11px] uppercase tracking-[0.08em] opacity-70">
-                  {date.weekday}
-                </span>
-                <span className="mt-0.5 block font-[family-name:var(--font-display)] text-[19px] font-bold">
-                  {date.dayOfMonth}
-                </span>
+                ‹
               </Link>
-            ))}
-          </nav>
+            ) : (
+              <span className="h-10 w-10 flex-none" aria-hidden />
+            )}
+
+            <nav
+              data-scroll-strip
+              aria-label="Booking day"
+              className="-mx-5 flex flex-1 gap-2.5 overflow-x-auto px-5 pb-1 sm:mx-0 sm:px-0"
+            >
+              {dates.map((date) => (
+                <Link
+                  key={date.day}
+                  href={hrefFor({ day: date.day })}
+                  aria-current={date.isSelected ? 'date' : undefined}
+                  className={`flex-none rounded-[11px] border px-4 py-3 text-center ${
+                    date.isSelected
+                      ? 'border-navy bg-navy text-white'
+                      : 'border-line bg-surface text-slate hover:border-line-heavy'
+                  }`}
+                >
+                  <span className="block text-[11px] uppercase tracking-[0.08em] opacity-70">
+                    {date.weekday}
+                  </span>
+                  <span className="mt-0.5 block font-[family-name:var(--font-display)] text-[19px] font-bold">
+                    {date.dayOfMonth}
+                  </span>
+                </Link>
+              ))}
+            </nav>
+
+            {/* Next week — always available for advance booking. */}
+            <Link
+              href={hrefFor({ start: shiftDayString(stripStart, DATE_STRIP_DAYS) })}
+              aria-label="Next week"
+              className="flex h-10 w-10 flex-none items-center justify-center rounded-[10px] border border-line bg-surface text-slate hover:border-line-heavy"
+            >
+              ›
+            </Link>
+          </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-2.5">
             <span className="mr-1 text-[13px] font-medium text-muted">Duration</span>

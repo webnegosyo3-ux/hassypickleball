@@ -27,19 +27,27 @@ export type DateOption = {
 
 export type BuildDateStripInput = {
   readonly selectedDay: string
+  /**
+   * The first day shown in the strip. Defaults to `selectedDay` when omitted,
+   * which keeps the original behaviour for callers that do not need a
+   * sliding window.
+   */
+  readonly startDay?: string
   readonly timeZone: string
   readonly days: number
 }
 
 /**
- * The horizontal date picker. Runs forward from the selected day rather than
- * centring on it, so the strip never offers a day already in the past.
+ * The horizontal date picker. Runs forward from `startDay` (or `selectedDay`
+ * when `startDay` is not given) rather than centring on the selection, so the
+ * strip never offers a day already in the past, and the prev/next controls can
+ * shift the visible window without changing the active day.
  *
  * Days are stepped at noon UTC: adding 24 hours to midnight lands on the
  * previous day in any zone behind UTC once a DST shift is involved.
  */
 export function buildDateStrip(input: BuildDateStripInput): readonly DateOption[] {
-  const start = new Date(`${input.selectedDay}T12:00:00Z`)
+  const start = new Date(`${input.startDay ?? input.selectedDay}T12:00:00Z`)
 
   return Array.from({ length: input.days }, (_unused, offset) => {
     const date = new Date(start.getTime() + offset * DAY_MS)
