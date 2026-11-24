@@ -19,6 +19,7 @@ const slot = (utc: string, overrides: Partial<AvailabilitySlot> = {}): Availabil
   endsAt: at(utc),
   priceCents: 60000,
   isAvailable: true,
+  isPast: false,
   ...overrides,
 })
 

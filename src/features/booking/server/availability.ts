@@ -68,6 +68,13 @@ export async function getAvailability(input: unknown): Promise<Result<CourtAvail
       to,
     })
 
+    // Pass the current instant only for today so that slots whose start time
+    // has already passed are shown as unavailable rather than falsely open.
+    // For future dates every slot's availability is driven by bookings alone.
+    const now = new Date()
+    const todayInZone = now.toLocaleDateString('en-CA', { timeZone: club.timeZone })
+    const isToday = query.day === todayInZone
+
     return ok([
       ...buildCourtAvailability({
         club,
@@ -81,6 +88,7 @@ export async function getAvailability(input: unknown): Promise<Result<CourtAvail
         durationMinutes: query.durationMinutes,
         rules,
         tier,
+        now: isToday ? now : undefined,
       }),
     ])
   } catch (error: unknown) {

@@ -12,6 +12,7 @@ function slot(overrides: Partial<AvailabilitySlot> = {}): AvailabilitySlot {
     endsAt: new Date('2026-03-15T23:00:00Z'),
     priceCents: 60000,
     isAvailable: true,
+    isPast: false,
     ...overrides,
   }
 }

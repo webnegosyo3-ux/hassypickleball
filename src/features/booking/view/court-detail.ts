@@ -111,8 +111,12 @@ export function buildDurationOptions(input: BuildDurationOptionsInput): readonly
  *
  * `included` is the middle of a multi-slot booking: free, but not separately
  * bookable, because the customer already owns that time.
+ *
+ * `past` is a slot whose start time has already passed today — unavailable for
+ * the same reason as `booked`, but labelled differently so the customer knows
+ * the slot expired rather than being taken.
  */
-export type SlotState = 'selected' | 'included' | 'available' | 'booked'
+export type SlotState = 'selected' | 'included' | 'available' | 'booked' | 'past'
 
 export type SlotRow = {
   readonly startsAt: Date
@@ -135,6 +139,10 @@ function stateOf(
   slot: AvailabilitySlot,
   selection: { readonly from: number; readonly to: number } | null,
 ): SlotState {
+  if (slot.isPast) {
+    return 'past'
+  }
+
   if (!slot.isAvailable) {
     return 'booked'
   }
@@ -167,6 +175,8 @@ function lowestPriceCents(slots: readonly AvailabilitySlot[]): number | null {
 
 function labelFor(state: SlotState, isOffPeak: boolean): string {
   switch (state) {
+    case 'past':
+      return 'Past'
     case 'booked':
       return 'Booked'
     case 'selected':

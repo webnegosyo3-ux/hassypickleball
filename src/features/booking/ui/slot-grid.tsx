@@ -41,7 +41,9 @@ export function SlotGrid({
         const isSelected = selectedStartsAt?.getTime() === slot.startsAt.getTime()
         const label = slot.isAvailable
           ? `${time}, ${formatMoney(slot.priceCents, currency)}`
-          : `${time}, booked`
+          : slot.isPast
+            ? `${time}, past`
+            : `${time}, booked`
 
         return (
           <li key={slot.startsAt.toISOString()}>
@@ -51,11 +53,11 @@ export function SlotGrid({
               aria-pressed={isSelected}
               aria-label={label}
               onClick={() => onSelect(slot)}
-              className={buttonClass(slot.isAvailable, isSelected)}
+              className={buttonClass(slot.isAvailable, isSelected, slot.isPast)}
             >
               <span className="text-[15px] font-bold">{time}</span>
               <span className="text-[12px] font-medium opacity-80">
-                {slot.isAvailable ? formatMoney(slot.priceCents, currency) : 'Booked'}
+                {slot.isAvailable ? formatMoney(slot.priceCents, currency) : slot.isPast ? 'Past' : 'Booked'}
               </span>
             </button>
           </li>
@@ -65,11 +67,11 @@ export function SlotGrid({
   )
 }
 
-function buttonClass(isAvailable: boolean, isSelected: boolean): string {
+function buttonClass(isAvailable: boolean, isSelected: boolean, isPast = false): string {
   const base = 'flex w-full flex-col items-center gap-0.5 rounded-[12px] border px-3 py-2.5'
 
   if (!isAvailable) {
-    return `${base} cursor-not-allowed border-line bg-surface-sunken text-subtle line-through`
+    return `${base} cursor-not-allowed border-line bg-surface-sunken text-subtle line-through${isPast ? ' opacity-50' : ''}`
   }
 
   if (isSelected) {

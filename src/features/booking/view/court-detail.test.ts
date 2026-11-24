@@ -102,6 +102,7 @@ describe('buildSlotRows', () => {
     endsAt: at(utc),
     priceCents: 60000,
     isAvailable: true,
+    isPast: false,
     ...overrides,
   })
 

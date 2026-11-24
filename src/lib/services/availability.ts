@@ -15,6 +15,12 @@ export type AvailabilitySlot = {
   readonly endsAt: Date
   readonly priceCents: number
   readonly isAvailable: boolean
+  /**
+   * True when the slot's start time has already passed. Set only when the
+   * caller passes `now` to `buildCourtAvailability`; always false otherwise.
+   * Used by the view layer to label expired slots "Past" rather than "Booked".
+   */
+  readonly isPast: boolean
 }
 
 export type CourtAvailability = {
@@ -34,6 +40,16 @@ export type BuildCourtAvailabilityInput = {
   readonly durationMinutes: number
   readonly rules: readonly PricingRule[]
   readonly tier: CustomerTier
+  /**
+   * The current instant. When provided, any slot whose start time has already
+   * passed is treated as unavailable, so today's expired slots show greyed
+   * alongside booked ones rather than falsely appearing open.
+   *
+   * Omitting it (the default) leaves every slot's availability driven purely by
+   * bookings and blocks — correct for future dates where no slot can be in the
+   * past.
+   */
+  readonly now?: Date
 }
 
 /**
@@ -69,20 +85,25 @@ export function buildCourtAvailability(
       (rule) => rule.courtId === null || rule.courtId === court.id,
     )
 
-    const slots = candidates.map((startsAt) => ({
-      startsAt,
-      endsAt: addMinutes(startsAt, input.durationMinutes),
-      priceCents: quoteCourtSegment({
-        basePriceCents: court.basePriceCents,
-        courtId: court.id,
+    const slots = candidates.map((startsAt) => {
+      const inPast = input.now !== undefined && startsAt <= input.now
+
+      return {
         startsAt,
-        durationMinutes: input.durationMinutes,
-        timeZone: input.club.timeZone,
-        tier: input.tier,
-        rules: courtRules,
-      }).totalCents,
-      isAvailable: openStarts.has(startsAt.getTime()),
-    }))
+        endsAt: addMinutes(startsAt, input.durationMinutes),
+        priceCents: quoteCourtSegment({
+          basePriceCents: court.basePriceCents,
+          courtId: court.id,
+          startsAt,
+          durationMinutes: input.durationMinutes,
+          timeZone: input.club.timeZone,
+          tier: input.tier,
+          rules: courtRules,
+        }).totalCents,
+        isAvailable: openStarts.has(startsAt.getTime()) && !inPast,
+        isPast: inPast,
+      }
+    })
 
     return {
       courtId: court.id,
