@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { parseClockTime } from '@/lib/domain/time'
 
 /**
  * Boundary validation for staff-initiated writes.
@@ -288,8 +289,8 @@ export const productPatchSchema = productFieldsSchema
 
 export const createProductSchema = productFieldsSchema
 
-/** "HH:MM" or "HH:MM:SS", as a time input and Postgres both produce. */
-const CLOCK_TIME = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
+/** "HH:MM" or "HH:MM:SS", or "24:00" / "24:00:00" as a time input and Postgres both produce. */
+const CLOCK_TIME = /^([01]\d|2[0-3]|24):[0-5]\d(:[0-5]\d)?$/
 
 /**
  * The club-wide settings behind the storefront: name, desk phone, opening
@@ -307,10 +308,21 @@ export const clubSettingsSchema = z
     cancellationWindowHours: z.number().int().min(0).max(168),
     groupBookingNote: z.string().trim().max(1000).nullish(),
   })
-  .refine((club) => club.closesAt > club.opensAt, {
-    message: 'Closing time must be after opening time',
-    path: ['closesAt'],
-  })
+  .transform((club) => ({
+    ...club,
+    closesAt: club.closesAt.startsWith('00:00') ? '24:00' : club.closesAt,
+  }))
+  .refine(
+    (club) => {
+      const opens = parseClockTime(club.opensAt)
+      const closes = parseClockTime(club.closesAt)
+      return closes > opens
+    },
+    {
+      message: 'Closing time must be after opening time',
+      path: ['closesAt'],
+    },
+  )
   .refine((club) => club.maxDurationMinutes >= club.minDurationMinutes, {
     message: 'Longest booking cannot be shorter than the shortest',
     path: ['maxDurationMinutes'],

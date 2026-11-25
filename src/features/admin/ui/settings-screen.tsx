@@ -21,8 +21,11 @@ const FIELD =
 const AREA = FIELD.replace('h-10', 'min-h-24 py-2')
 const LABEL = 'text-[13px] font-semibold text-ink'
 
-/** Postgres returns "06:00:00"; a time input wants "06:00". */
-const toTimeInput = (time: string) => time.slice(0, 5)
+/** Postgres returns "06:00:00"; a time input wants "06:00". 24:00 (midnight) displays as 00:00. */
+const toTimeInput = (time: string) => {
+  if (time.startsWith('24:00')) return '00:00'
+  return time.slice(0, 5)
+}
 
 type FormState = {
   name: string
@@ -73,7 +76,7 @@ export function SettingsScreen({ club, canEdit, onSave }: SettingsScreenProps) {
         name: form.name,
         phone: form.phone,
         opensAt: form.opensAt,
-        closesAt: form.closesAt,
+        closesAt: form.closesAt === '00:00' ? '24:00' : form.closesAt,
         slotMinutes: Number(form.slotMinutes),
         minDurationMinutes: Number(form.minDurationMinutes),
         maxDurationMinutes: Number(form.maxDurationMinutes),
@@ -127,7 +130,11 @@ export function SettingsScreen({ club, canEdit, onSave }: SettingsScreenProps) {
           <input {...field('opensAt')} type="time" required className={FIELD} />
         </Field>
 
-        <Field id={`${prefix}-closesAt`} label="Closes at">
+        <Field
+          id={`${prefix}-closesAt`}
+          label="Closes at"
+          hint="For midnight closing (12:00 AM), pick 00:00. Note: 12:00 is noon."
+        >
           <input {...field('closesAt')} type="time" required className={FIELD} />
         </Field>
 
