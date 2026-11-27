@@ -137,7 +137,7 @@ export function SettingsScreen({ club, canEdit, onSave }: SettingsScreenProps) {
         <Field
           id={`${prefix}-closesAt`}
           label="Closes at"
-          hint="For midnight closing (12:00 AM), pick 00:00. Note: 12:00 is noon."
+          hint="For midnight closing (12:00 AM), pick 00:00 — the last 11:00 PM slot then fits. Note: 12:00 is noon."
         >
           <input {...field('closesAt')} type="time" required className={FIELD} />
         </Field>
@@ -165,12 +165,16 @@ export function SettingsScreen({ club, canEdit, onSave }: SettingsScreenProps) {
           />
         </Field>
 
-        <Field id={`${prefix}-minDurationMinutes`} label="Shortest booking (minutes)">
+        <Field
+          id={`${prefix}-minDurationMinutes`}
+          label="Shortest booking (minutes)"
+          hint="Sessions are sold in whole hours: 60, 120, 180 or 240."
+        >
           <input
             {...field('minDurationMinutes')}
             type="number"
-            min={15}
-            step={15}
+            min={60}
+            step={60}
             required
             className={FIELD}
           />
@@ -180,8 +184,8 @@ export function SettingsScreen({ club, canEdit, onSave }: SettingsScreenProps) {
           <input
             {...field('maxDurationMinutes')}
             type="number"
-            min={15}
-            step={15}
+            min={60}
+            step={60}
             required
             className={FIELD}
           />

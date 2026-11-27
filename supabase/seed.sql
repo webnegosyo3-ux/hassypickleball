@@ -13,7 +13,7 @@ values (
   'PHP',
   '06:00',
   '24:00',
-  30,
+  60,
   '(555) 019-8842',
   12,
   'Book two adjacent courts and we will set up the divider net.'

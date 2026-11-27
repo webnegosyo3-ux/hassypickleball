@@ -108,14 +108,14 @@ describe('buildStripStart', () => {
 })
 
 describe('buildDurationOptions', () => {
-  const club = { minDurationMinutes: 30, maxDurationMinutes: 240 }
+  const club = { minDurationMinutes: 60, maxDurationMinutes: 240 }
 
-  it('offers the four session lengths the design shows', () => {
+  it('offers whole hours, one through four', () => {
     // Arrange / Act
     const options = buildDurationOptions({ club, durationMinutes: 60 })
 
     // Assert
-    expect(options.map((option) => option.minutes)).toEqual([30, 60, 90, 120])
+    expect(options.map((option) => option.minutes)).toEqual([60, 120, 180, 240])
   })
 
   it('labels durations the way the design writes them', () => {
@@ -124,35 +124,35 @@ describe('buildDurationOptions', () => {
 
     // Assert
     expect(options.map((option) => option.label)).toEqual([
-      '30 min',
       '1 hour',
-      '1.5 hours',
       '2 hours',
+      '3 hours',
+      '4 hours',
     ])
   })
 
   it('marks the active duration', () => {
     // Arrange / Act
-    const options = buildDurationOptions({ club, durationMinutes: 90 })
+    const options = buildDurationOptions({ club, durationMinutes: 180 })
 
     // Assert
-    expect(options.find((option) => option.isSelected)?.minutes).toBe(90)
+    expect(options.find((option) => option.isSelected)?.minutes).toBe(180)
   })
 
   it('drops lengths the club will not sell rather than offering a booking that fails', () => {
-    // Arrange — a club with a one-hour minimum cannot take a 30 minute session.
+    // Arrange — a club that stops at two hours cannot take a four hour session.
     const options = buildDurationOptions({
-      club: { minDurationMinutes: 60, maxDurationMinutes: 90 },
+      club: { minDurationMinutes: 60, maxDurationMinutes: 120 },
       durationMinutes: 60,
     })
 
-    // Assert — getAvailability would reject 30 and 120, so neither is shown.
-    expect(options.map((option) => option.minutes)).toEqual([60, 90])
+    // Assert — getAvailability would reject 180 and 240, so neither is shown.
+    expect(options.map((option) => option.minutes)).toEqual([60, 120])
   })
 })
 
 describe('parseDurationMinutes', () => {
-  const club = { minDurationMinutes: 30, maxDurationMinutes: 120 }
+  const club = { minDurationMinutes: 60, maxDurationMinutes: 120 }
 
   it('opens on the default hour when no length was asked for', () => {
     // Arrange / Act
@@ -164,10 +164,10 @@ describe('parseDurationMinutes', () => {
 
   it('keeps a length the club sells', () => {
     // Arrange / Act
-    const minutes = parseDurationMinutes({ raw: '90', club })
+    const minutes = parseDurationMinutes({ raw: '120', club })
 
     // Assert
-    expect(minutes).toBe(90)
+    expect(minutes).toBe(120)
   })
 
   it('clamps a length past what the club sells instead of failing the page', () => {
@@ -181,10 +181,10 @@ describe('parseDurationMinutes', () => {
 
   it('pulls a length below the club minimum up to it', () => {
     // Arrange / Act
-    const minutes = parseDurationMinutes({ raw: '15', club })
+    const minutes = parseDurationMinutes({ raw: '30', club })
 
     // Assert
-    expect(minutes).toBe(30)
+    expect(minutes).toBe(60)
   })
 
   it('falls back rather than trusting a length that is not a number', () => {
@@ -196,15 +196,15 @@ describe('parseDurationMinutes', () => {
   })
 
   it('opens on the only length a club sells, rather than on the default hour', () => {
-    // Arrange — a club selling a single 30 minute session rejected the default
+    // Arrange — a club selling a single four hour session rejected the default
     // hour, which is what put an error where the times should have been.
     const minutes = parseDurationMinutes({
       raw: undefined,
-      club: { minDurationMinutes: 30, maxDurationMinutes: 30 },
+      club: { minDurationMinutes: 240, maxDurationMinutes: 240 },
     })
 
     // Assert
-    expect(minutes).toBe(30)
+    expect(minutes).toBe(240)
   })
 })
 

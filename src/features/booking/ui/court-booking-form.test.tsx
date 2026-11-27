@@ -87,8 +87,8 @@ function renderForm(
         extraPlayerFeeCents: 5_000,
       }}
       durations={[
-        { minutes: 30, label: '30 min' },
         { minutes: 60, label: '1 hour' },
+        { minutes: 120, label: '2 hours' },
       ]}
       today={DAY}
       initialDay={DAY}

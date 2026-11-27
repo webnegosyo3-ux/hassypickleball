@@ -308,8 +308,10 @@ export const clubSettingsSchema = z
     opensAt: z.string().regex(CLOCK_TIME, 'Enter a valid opening time'),
     closesAt: z.string().regex(CLOCK_TIME, 'Enter a valid closing time'),
     slotMinutes: z.union([z.literal(15), z.literal(30), z.literal(60)]),
-    minDurationMinutes: z.number().int().min(15).max(1440),
-    maxDurationMinutes: z.number().int().min(15).max(1440),
+    // Sessions are sold in whole hours, one through four; anything shorter or
+    // longer would be a length the court page never offers.
+    minDurationMinutes: z.number().int().min(60).max(1440),
+    maxDurationMinutes: z.number().int().min(60).max(1440),
     cancellationWindowHours: z.number().int().min(0).max(168),
     groupBookingNote: z.string().trim().max(1000).nullish(),
   })

@@ -18,8 +18,11 @@ const MINUTES_PER_HOUR = 60
 /** The session length the page opens on when no usable length was asked for. */
 export const DEFAULT_DURATION_MINUTES = 60
 
-/** The session lengths the design offers, before the club's own limits apply. */
-const DURATION_CHOICES = [30, 60, 90, 120] as const
+/**
+ * The session lengths the club sells, before its own limits apply: whole hours
+ * from one to four. Half hours are gone — the desk only takes hour-long blocks.
+ */
+const DURATION_CHOICES = [60, 120, 180, 240] as const
 
 /** How many days the strip shows before it pages on to the next week. */
 export const DATE_STRIP_DAYS = 7
@@ -109,7 +112,7 @@ export type BuildDurationOptionsInput = {
  * The session length a raw `?duration=` asks for, clamped to what the club sells.
  *
  * The fallback is clamped to the maximum as well as the minimum: a club that
- * sells one length only (a 30 minute slot, say) would otherwise open on an
+ * sells one length only (a two hour block, say) would otherwise open on an
  * hour the server rejects, and the customer would meet an error where the
  * times should be.
  */
@@ -134,7 +137,7 @@ export function parseDurationMinutes(input: {
   return Math.min(Math.max(parsed, minDurationMinutes), maxDurationMinutes)
 }
 
-/** "30 min", "1 hour", "1.5 hours" — the design's own wording for a length. */
+/** "1 hour", "2 hours" — the design's own wording for a length. */
 function durationLabel(minutes: number): string {
   if (minutes < MINUTES_PER_HOUR) {
     return `${minutes} min`

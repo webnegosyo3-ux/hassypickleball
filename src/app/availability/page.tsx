@@ -2,7 +2,11 @@ import Link from 'next/link'
 import { getAvailability } from '@/features/booking/server/availability'
 import { getMonthOpenSlots } from '@/features/booking/server/month-availability'
 import { MonthCalendar } from '@/features/booking/ui/month-calendar'
-import { buildSlotRows, parseDurationMinutes } from '@/features/booking/view/court-detail'
+import {
+  buildDurationOptions,
+  buildSlotRows,
+  parseDurationMinutes,
+} from '@/features/booking/view/court-detail'
 import {
   buildMonthCalendar,
   describeMonth,
@@ -92,9 +96,9 @@ export default async function AvailabilityPage({ searchParams }: AvailabilityPag
     return `/availability?${params.toString()}`
   }
 
-  const durations = [30, 60, 90, 120].filter(
-    (minutes) => minutes >= club.minDurationMinutes && minutes <= club.maxDurationMinutes,
-  )
+  // The same pills the court page offers, from the same bounds, so the two
+  // pages can never disagree about which lengths the club sells.
+  const durations = buildDurationOptions({ club, durationMinutes })
 
   const byId = new Map(courts.map((court) => [court.id, court]))
 
@@ -112,18 +116,18 @@ export default async function AvailabilityPage({ searchParams }: AvailabilityPag
 
       <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
         <span className="text-[13px] font-medium text-muted">Session length</span>
-        {durations.map((minutes) => (
+        {durations.map((option) => (
           <Link
-            key={minutes}
-            href={hrefFor({ duration: minutes })}
-            aria-current={minutes === durationMinutes ? 'page' : undefined}
+            key={option.minutes}
+            href={hrefFor({ duration: option.minutes })}
+            aria-current={option.isSelected ? 'page' : undefined}
             className={`flex min-h-[44px] items-center rounded-[9px] border px-3.5 text-[13.5px] font-semibold ${
-              minutes === durationMinutes
+              option.isSelected
                 ? 'border-navy bg-navy text-white'
                 : 'border-line bg-surface text-slate hover:border-line-heavy'
             }`}
           >
-            {minutes} min
+            {option.label}
           </Link>
         ))}
       </div>
