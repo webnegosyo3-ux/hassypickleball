@@ -20,6 +20,7 @@ function row(overrides: Partial<BookingRow> = {}): BookingRow {
     status: 'confirmed',
     method: 'GCash',
     paymentStatus: 'paid',
+    hasProof: false,
     total: '₱1,200',
     ...overrides,
   }

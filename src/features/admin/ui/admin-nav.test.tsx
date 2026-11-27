@@ -86,15 +86,20 @@ function installDesktopMatchMedia(initialDesktop = true): {
 }
 
 describe('AdminNav', () => {
-  it('names the club and the signed-in staff member', () => {
+  it('marquees the logo alone, and still names the club to a screen reader', () => {
     // Arrange
     pathname.current = '/admin'
 
     // Act
     render(<AdminNav clubName="Riverbend Pickleball" staffName="Priya Desk" />)
 
-    // Assert
-    expect(screen.getByRole('link', { name: /Riverbend Pickleball/ })).toBeInTheDocument()
+    // Assert — the name is no longer printed beside the mark; an image with
+    // empty alt would leave the link unnamed, so it carries the name instead.
+    expect(screen.queryByText('Riverbend Pickleball')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Riverbend Pickleball' })).toHaveAttribute(
+      'href',
+      '/admin',
+    )
     expect(screen.getByText('Priya Desk')).toBeInTheDocument()
   })
 

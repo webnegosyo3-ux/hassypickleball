@@ -45,8 +45,6 @@ export type ScheduleAgendaSection = {
   readonly entries: readonly ScheduleAgendaEntry[]
 }
 
-const NOTHING_BOOKED = 'Nothing booked'
-
 function toAgendaEntry(entry: ScheduleEntry): ScheduleAgendaEntry {
   return {
     id: entry.id,
@@ -58,29 +56,15 @@ function toAgendaEntry(entry: ScheduleEntry): ScheduleAgendaEntry {
   }
 }
 
-function countLabel(count: number, noun: string): readonly string[] {
-  return count === 0 ? [] : [`${count} ${noun}${count === 1 ? '' : 's'}`]
-}
-
-/**
- * What the court is carrying, counted the way staff talk about it: a booking
- * is a guest on the court, a hold is the club taking the time back.
- */
-function summarise(entries: readonly ScheduleEntry[]): string {
-  const holds = entries.filter((entry) => entry.blockId !== null).length
-
-  const parts = [...countLabel(entries.length - holds, 'booking'), ...countLabel(holds, 'hold')]
-
-  return parts.length === 0 ? NOTHING_BOOKED : parts.join(' · ')
-}
-
 function toSection(column: ScheduleColumn): ScheduleAgendaSection {
   return {
     courtId: column.courtId,
     courtName: column.courtName,
     meta: column.meta,
     openLabel: column.openLabel,
-    summary: summarise(column.entries),
+    // The grid header carries the same count, so it is worked out once, in the
+    // view model that both layouts read.
+    summary: column.summary,
     entries: column.entries.map(toAgendaEntry),
   }
 }

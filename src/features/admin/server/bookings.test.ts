@@ -4,12 +4,17 @@ const getCurrentStaff = vi.fn()
 const createSupabaseServerClient = vi.fn()
 const loadBookingDetail = vi.fn()
 const updateBookingStatus = vi.fn()
+const removeBooking = vi.fn()
 
 vi.mock('@/lib/auth/staff', () => ({ getCurrentStaff }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient }))
-vi.mock('@/lib/repositories/bookings', () => ({ loadBookingDetail, updateBookingStatus }))
+vi.mock('@/lib/repositories/bookings', () => ({
+  loadBookingDetail,
+  updateBookingStatus,
+  removeBooking,
+}))
 
-const { setBookingStatus } = await import('./bookings')
+const { setBookingStatus, deleteBooking } = await import('./bookings')
 
 /**
  * The desk's control over a booking's life: confirm it, cancel it, mark it
@@ -145,5 +150,52 @@ describe('setBookingStatus', () => {
     })
 
     expect(loadBookingDetail).toHaveBeenCalledWith(expect.anything(), BOOKING_ID)
+  })
+})
+
+/**
+ * Deleting is not cancelling: it erases the row and, by cascade, its payments,
+ * items, players and court holds. The guarantees are that a caller cannot name
+ * somebody else's booking and that a refusal reaches the desk as a refusal.
+ */
+describe('deleteBooking', () => {
+  it('refuses a caller with no staff session and never deletes', async () => {
+    getCurrentStaff.mockResolvedValue(null)
+
+    const result = await deleteBooking({ bookingId: BOOKING_ID })
+
+    expect(result).toMatchObject({ success: false, code: 'UNAUTHORIZED' })
+    expect(removeBooking).not.toHaveBeenCalled()
+  })
+
+  it('rejects a payload that is not a booking id', async () => {
+    const result = await deleteBooking({ bookingId: 'not-a-uuid' })
+
+    expect(result).toMatchObject({ success: false, code: 'INVALID' })
+    expect(removeBooking).not.toHaveBeenCalled()
+  })
+
+  it('deletes the booking under the signed-in staff member’s club', async () => {
+    const result = await deleteBooking({ bookingId: BOOKING_ID })
+
+    expect(result).toEqual({ success: true, data: { bookingId: BOOKING_ID } })
+    expect(removeBooking).toHaveBeenCalledWith(expect.anything(), STAFF.clubId, BOOKING_ID)
+  })
+
+  it('reports a booking that is not there rather than deleting blind', async () => {
+    loadBookingDetail.mockResolvedValue(null)
+
+    const result = await deleteBooking({ bookingId: BOOKING_ID })
+
+    expect(result).toMatchObject({ success: false, error: 'That booking is no longer there' })
+    expect(removeBooking).not.toHaveBeenCalled()
+  })
+
+  it('reports a database refusal as a failure, not as a deletion', async () => {
+    removeBooking.mockRejectedValue(new Error('permission denied'))
+
+    const result = await deleteBooking({ bookingId: BOOKING_ID })
+
+    expect(result).toMatchObject({ success: false, code: 'DB_ERROR' })
   })
 })

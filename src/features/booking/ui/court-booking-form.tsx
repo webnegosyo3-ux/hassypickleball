@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import type { FormEvent } from 'react'
 import { MonthDayPicker } from './month-day-picker'
+import { useBookingStage } from './booking-stage'
 import {
   buildBookingFormOrder,
   buildBookingFormSummary,
@@ -65,7 +66,6 @@ export type CourtBookingFormProps = {
 
 const EMPTY_CONTACT: BookingFormContact = {
   contactName: '',
-  contactEmail: '',
   contactPhone: '',
   notes: '',
   willPresentId: false,
@@ -143,6 +143,7 @@ export function CourtBookingForm({
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<CheckoutResult | null>(null)
   const [isPending, startTransition] = useTransition()
+  const stage = useBookingStage()
 
   const [day, setDay] = useState(initialDay)
   const [month, setMonth] = useState(monthOf(initialDay))
@@ -225,9 +226,8 @@ export function CourtBookingForm({
   // Nothing on screen may describe a day whose times have not arrived yet.
   const visibleSlots = isFetching ? [] : slotList
   const selectedSlot =
-    visibleSlots.find(
-      (slot) => slot.startsAt.toISOString() === selectedAt && slot.isAvailable,
-    ) ?? null
+    visibleSlots.find((slot) => slot.startsAt.toISOString() === selectedAt && slot.isAvailable) ??
+    null
 
   const rows = buildSlotRows({
     slots: visibleSlots,
@@ -349,6 +349,9 @@ export function CourtBookingForm({
         return
       }
 
+      // The court's summary card above this form has nothing left to sell now
+      // that the court is held, so the page takes it away.
+      stage.markBooked()
       setResult(outcome.data)
     })
   }
@@ -388,17 +391,6 @@ export function CourtBookingForm({
               autoComplete="tel"
               onChange={setField('contactPhone')}
             />
-            <div className="sm:col-span-2">
-              <Field
-                label="Email address"
-                name="contactEmail"
-                type="email"
-                value={contact.contactEmail}
-                required
-                autoComplete="email"
-                onChange={setField('contactEmail')}
-              />
-            </div>
             <div className="sm:col-span-2">
               <Field
                 label="Anything we should know? (optional)"

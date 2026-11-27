@@ -1,10 +1,10 @@
 import 'server-only'
 
+import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import { zonedTimeToUtc } from '@/lib/domain/time'
 import { toDayStringInZone } from '@/lib/format/time'
-import { getCurrentStaff, type StaffMember } from '@/lib/auth/staff'
-import { findClubById } from '@/lib/repositories/clubs'
+import { getStaffAccess, type StaffMember } from '@/lib/auth/staff'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Client } from '@/lib/repositories/support'
 import type { Club } from '@/lib/repositories/mappers'
@@ -16,6 +16,10 @@ import type { Club } from '@/lib/repositories/mappers'
  * here without one means the session ended mid-navigation; that is a 404 rather
  * than a crash. Reads use the anon-key server client so RLS stays the boundary
  * — the staff policies are what actually decide what these screens can see.
+ *
+ * The club comes back with the staff record (see getStaffAccess), so this costs
+ * no query of its own. Cached per request for the same reason: a page and the
+ * components under it ask once between them.
  */
 
 export type AdminConsole = {
@@ -24,22 +28,17 @@ export type AdminConsole = {
   readonly club: Club
 }
 
-export async function loadConsole(): Promise<AdminConsole> {
-  const staff = await getCurrentStaff()
+export const loadConsole = cache(async (): Promise<AdminConsole> => {
+  const access = await getStaffAccess()
 
-  if (!staff) {
+  if (access.status !== 'staff') {
     notFound()
   }
 
   const client = (await createSupabaseServerClient()) as unknown as Client
-  const club = await findClubById(client, staff.clubId)
 
-  if (!club) {
-    notFound()
-  }
-
-  return { staff, client, club }
-}
+  return { staff: access.staff, client, club: access.club }
+})
 
 export type DayWindow = {
   /** Club-local calendar day, "YYYY-MM-DD". */

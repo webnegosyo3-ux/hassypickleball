@@ -21,7 +21,6 @@ export type BookableAddon = {
 
 export type BookingFormContact = {
   readonly contactName: string
-  readonly contactEmail: string
   readonly contactPhone: string
   readonly notes: string
   readonly willPresentId: boolean
@@ -57,6 +56,18 @@ export type BuildBookingFormOrderInput = {
   readonly paymentMethodId: string | null
 }
 
+/**
+ * The address the club files a booker under, now that the form does not ask for
+ * one. Keyed on the phone number so a returning guest lands on the same customer
+ * row, and on the reserved `.invalid` TLD so nothing is ever mailed to a mailbox
+ * that cannot exist.
+ */
+export function guestContactEmail(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+
+  return `${digits.length > 0 ? digits : 'walk-in'}@guest.invalid`
+}
+
 /** The order to send, or null while no slot has been chosen. */
 export function buildBookingFormOrder(input: BuildBookingFormOrderInput): BookingFormOrder | null {
   const { slot } = input
@@ -70,7 +81,7 @@ export function buildBookingFormOrder(input: BuildBookingFormOrderInput): Bookin
   return {
     clubId: input.clubId,
     contactName: input.contact.contactName.trim(),
-    contactEmail: input.contact.contactEmail.trim(),
+    contactEmail: guestContactEmail(input.contact.contactPhone),
     contactPhone: input.contact.contactPhone.trim(),
     willPresentId: input.contact.willPresentId,
     notes: notes.length > 0 ? notes : null,

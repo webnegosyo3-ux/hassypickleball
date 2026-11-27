@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { CourtBookingForm } from './court-booking-form'
+import { BookingStage } from './booking-stage'
 import { serialiseSlot, type SerialisedSlot } from '../view/availability-payload'
 import { err, ok, type Result } from '@/lib/api/result'
 import type { CheckoutResult } from '@/features/checkout/server/submit-checkout'
@@ -32,11 +33,7 @@ function slotAt(hourUtc: number, overrides: Partial<SerialisedSlot> = {}): Seria
   }
 }
 
-const SLOTS: readonly SerialisedSlot[] = [
-  slotAt(2),
-  slotAt(3),
-  slotAt(4, { isAvailable: false }),
-]
+const SLOTS: readonly SerialisedSlot[] = [slotAt(2), slotAt(3), slotAt(4, { isAvailable: false })]
 
 const GCASH: CheckoutPaymentMethod = {
   id: 'gcash',
@@ -56,19 +53,26 @@ const ADDON = {
   priceCents: 15_000,
 }
 
-function renderForm(overrides: { readonly onSubmit?: (form: FormData) => Promise<Result<CheckoutResult>> } = {}) {
-  const onSubmit = vi.fn(
-    async (_form: FormData): Promise<Result<CheckoutResult>> =>
-      ok({
-        reference: 'HP-1234',
-        status: 'awaiting_payment',
-        totalCents: 90_000,
-        paymentMethodLabel: 'GCash',
-        proofAttached: true,
-      }),
+const PITCH = 'Court 1 · up to 4 players, ₱350 per hour'
+
+function renderForm(
+  overrides: {
+    readonly onSubmit?: (form: FormData) => Promise<Result<CheckoutResult>>
+    /** Mount it the way the court page does, with the court card above it. */
+    readonly inStage?: boolean
+  } = {},
+) {
+  const onSubmit = vi.fn(async (_form: FormData): Promise<Result<CheckoutResult>> =>
+    ok({
+      reference: 'HP-1234',
+      status: 'awaiting_payment',
+      totalCents: 90_000,
+      paymentMethodLabel: 'GCash',
+      proofAttached: true,
+    }),
   )
 
-  render(
+  const form = (
     <CourtBookingForm
       clubId="club-1"
       courtId="court-1"
@@ -95,8 +99,10 @@ function renderForm(overrides: { readonly onSubmit?: (form: FormData) => Promise
       addons={[ADDON]}
       paymentMethods={[GCASH]}
       onSubmit={overrides.onSubmit ?? onSubmit}
-    />,
+    />
   )
+
+  render(overrides.inStage ? <BookingStage summary={<p>{PITCH}</p>}>{form}</BookingStage> : form)
 
   return { onSubmit }
 }
@@ -109,7 +115,6 @@ function summary() {
 async function fillDetails(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Full name'), 'Ana Cruz')
   await user.type(screen.getByLabelText('Phone number'), '0917 000 0000')
-  await user.type(screen.getByLabelText('Email address'), 'ana@example.com')
 }
 
 describe('CourtBookingForm', () => {
@@ -171,7 +176,7 @@ describe('CourtBookingForm', () => {
     expect(order).toMatchObject({
       clubId: 'club-1',
       contactName: 'Ana Cruz',
-      contactEmail: 'ana@example.com',
+      contactEmail: '09170000000@guest.invalid',
       contactPhone: '0917 000 0000',
       paymentMethodId: 'gcash',
       courts: [
@@ -195,6 +200,41 @@ describe('CourtBookingForm', () => {
     await user.click(screen.getByRole('button', { name: /Confirm booking/ }))
 
     expect(await screen.findByText('HP-1234')).toBeInTheDocument()
+  })
+
+  it('takes the court card away once the court is held', async () => {
+    // Arrange — the page shows the court's pitch above the form.
+    const user = userEvent.setup()
+    renderForm({ inStage: true })
+
+    expect(screen.getByText(PITCH)).toBeInTheDocument()
+
+    // Act
+    await fillDetails(user)
+    await user.click(screen.getByRole('button', { name: /10:00 AM/ }))
+    await user.click(screen.getByRole('button', { name: /Confirm booking/ }))
+
+    // Assert — the confirmation stands on its own, with no pitch above it.
+    expect(await screen.findByText('HP-1234')).toBeInTheDocument()
+    expect(screen.queryByText(PITCH)).not.toBeInTheDocument()
+  })
+
+  it('leaves the court card up when the booking is refused', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderForm({
+      inStage: true,
+      onSubmit: vi.fn(async () => err('That time was just taken. Pick another.')),
+    })
+
+    // Act
+    await fillDetails(user)
+    await user.click(screen.getByRole('button', { name: /10:00 AM/ }))
+    await user.click(screen.getByRole('button', { name: /Confirm booking/ }))
+
+    // Assert — nothing was booked, so the court still has to be sold.
+    expect(await screen.findByRole('alert')).toHaveTextContent('That time was just taken.')
+    expect(screen.getByText(PITCH)).toBeInTheDocument()
   })
 
   it('keeps what was typed and says why when the booking is refused', async () => {

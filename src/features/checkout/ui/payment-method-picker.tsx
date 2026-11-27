@@ -1,5 +1,6 @@
 'use client'
 
+import { QrCodeDialog } from './qr-code-dialog'
 import type { CheckoutPaymentMethod } from '../view/payment-method'
 
 /**
@@ -47,12 +48,9 @@ function Instructions({ method }: { readonly method: CheckoutPaymentMethod }) {
       ) : null}
 
       {method.qrImageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={method.qrImageUrl}
-          alt={`${method.label} QR code`}
-          className="mt-3 h-40 w-40 rounded-[10px] border border-line bg-surface object-contain"
-        />
+        // One tap to a code large enough to scan; inline it is a square that
+        // pushes the account number out of view on a phone.
+        <QrCodeDialog label={method.label} imageUrl={method.qrImageUrl} />
       ) : null}
     </div>
   )

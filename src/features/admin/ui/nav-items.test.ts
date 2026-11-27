@@ -3,12 +3,13 @@ import { ADMIN_NAV_ITEMS, isNavItemActive } from './nav-items'
 
 describe('ADMIN_NAV_ITEMS', () => {
   it('lists the console sections in the order the design shows them', () => {
-    // Courts sits with Products: those two configure what is for sale, while
-    // Schedule and Bookings run the day.
+    // Courts and Pricing sit with Products: those three configure what a court
+    // hour or a bottle of water costs, while Schedule and Bookings run the day.
     expect(ADMIN_NAV_ITEMS.map((item) => item.label)).toEqual([
       'Schedule',
       'Bookings',
       'Courts',
+      'Pricing',
       'Products',
       'Payment methods',
       'Customers',
@@ -27,10 +28,10 @@ describe('ADMIN_NAV_ITEMS', () => {
     expect(ADMIN_NAV_ITEMS.map((item) => item.href)).not.toContain('/admin/orders')
   })
 
-  it('offers no Pricing tab, because the console cannot edit pricing rules', () => {
-    // Rules still drive every quote, but they are seeded and edited in the
-    // database — a read-only tab implied an editor the console never had.
-    expect(ADMIN_NAV_ITEMS.map((item) => item.href)).not.toContain('/admin/pricing')
+  it('offers a Pricing tab, because the console now edits pricing rules', () => {
+    // The rules that drive every quote used to be seeded straight into the
+    // database; /admin/pricing reads and writes them, so the tab ships with it.
+    expect(ADMIN_NAV_ITEMS.map((item) => item.href)).toContain('/admin/pricing')
   })
 
   it('points every section at a route under /admin', () => {

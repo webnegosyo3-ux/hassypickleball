@@ -13,19 +13,25 @@ const BLOCK_ROW = {
 
 describe('listBlocksInWindow', () => {
   const window = {
-    courtIds: ['court-1', 'court-2'],
+    clubId: 'club-1',
     from: new Date('2026-03-01T00:00:00.000Z'),
     to: new Date('2026-03-02T00:00:00.000Z'),
   }
 
-  it('short-circuits without querying when no courts are given', async () => {
+  it('scopes the window to one club through the court join', async () => {
     const blocks = fakeTable({ data: [], error: null })
-    const client = fakeClient({ availability_blocks: blocks })
 
-    const result = await listBlocksInWindow(client, { ...window, courtIds: [] })
+    await listBlocksInWindow(fakeClient({ availability_blocks: blocks }), window)
 
-    expect(result).toEqual([])
-    expect(client.from).not.toHaveBeenCalled()
+    // Blocks have no club column, so the club is filtered on the embedded court.
+    expect(callsFor(blocks, 'select')).toContainEqual({
+      method: 'select',
+      args: ['*, courts!inner(club_id)'],
+    })
+    expect(callsFor(blocks, 'eq')).toContainEqual({
+      method: 'eq',
+      args: ['courts.club_id', 'club-1'],
+    })
   })
 
   it('uses a half-open window so a block ending at `from` is not returned', async () => {

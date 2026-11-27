@@ -11,7 +11,8 @@
 
 import { savePricingRule, removePricingRule } from './server/pricing'
 import { markBookingPaid, refundBookingPayment, type PaidResult } from './server/payments'
-import { setBookingStatus } from './server/bookings'
+import { loadBookingProofs } from './server/proofs'
+import { setBookingStatus, deleteBooking } from './server/bookings'
 import { blockCourtTime, removeCourtBlock } from './server/blocks'
 import { saveProduct } from './server/catalog'
 import { saveClubSettings } from './server/club'
@@ -25,6 +26,7 @@ import {
 import type { AvailabilityBlock, Booking, Payment } from '@/lib/repositories/booking-mappers'
 import type { Club, Court, PaymentMethod, Product } from '@/lib/repositories/mappers'
 import type { PricingRule } from '@/lib/domain/types'
+import type { PaymentLine } from './view/bookings'
 import type { Result } from '@/lib/api/result'
 
 export async function markBookingPaidAction(input: unknown): Promise<Result<PaidResult>> {
@@ -37,6 +39,20 @@ export async function refundPaymentAction(input: unknown): Promise<Result<Paymen
 
 export async function setBookingStatusAction(input: unknown): Promise<Result<Booking>> {
   return setBookingStatus(input)
+}
+
+export async function deleteBookingAction(input: unknown): Promise<Result<{ bookingId: string }>> {
+  return deleteBooking(input)
+}
+
+/**
+ * Signs the proofs on one booking when the ledger asks to see them, rather than
+ * while it renders. A read, but it is still gated by withStaff inside.
+ */
+export async function loadBookingProofsAction(
+  input: unknown,
+): Promise<Result<readonly PaymentLine[]>> {
+  return loadBookingProofs(input)
 }
 
 export async function blockCourtTimeAction(input: unknown): Promise<Result<AvailabilityBlock>> {

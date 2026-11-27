@@ -17,7 +17,33 @@ export const TABLE_SHELL = `${CARD} max-sm:rounded-none max-sm:border-0 max-sm:b
 
 /** Table internals: the screens compose DataTable/Row/Cell, never these. */
 const TABLE_HEAD = 'bg-surface-alt text-[11.5px] font-bold tracking-[0.08em] text-subtle uppercase'
-const CELL = 'px-4 py-3.5 text-left align-middle max-sm:px-0'
+const CELL_SPACING = 'px-4 py-3.5 align-middle max-sm:px-0'
+const CELL = `${CELL_SPACING} text-left`
+
+/**
+ * Where a column's heading sits. Every heading used to be forced left, which
+ * put "Total" on the far left of a column whose figures are right-aligned and
+ * made the table look broken. Headings now follow their column.
+ */
+export type ColumnAlign = 'left' | 'center' | 'right'
+
+export interface TableColumnSpec {
+  readonly label: string
+  readonly align?: ColumnAlign
+}
+
+/** A column is its heading, or its heading plus how that heading sits. */
+export type TableColumn = string | TableColumnSpec
+
+const ALIGN: Record<ColumnAlign, string> = {
+  left: 'text-left',
+  center: 'text-center',
+  right: 'text-right',
+}
+
+function columnLabel(column: TableColumn): string {
+  return typeof column === 'string' ? column : column.label
+}
 
 /**
  * The console's tables, which become a stack of cards below `sm`.
@@ -70,7 +96,7 @@ const MOBILE_ROLES: Record<CellMobileRole, string> = {
 
 export interface DataTableProps {
   readonly label: string
-  readonly columns: readonly string[]
+  readonly columns: readonly TableColumn[]
   /**
    * Minimum width for the table layout, which may only apply from `sm` up —
    * an unconditional one is what makes a phone scroll sideways.
@@ -89,8 +115,13 @@ export function DataTable({ label, columns, wideClassName = '', children }: Data
       <thead className={`${TABLE_HEAD} max-sm:sr-only`}>
         <tr role="row">
           {columns.map((column, index) => (
-            <th key={column || index} role="columnheader" scope="col" className={CELL}>
-              {column}
+            <th
+              key={columnLabel(column) || index}
+              role="columnheader"
+              scope="col"
+              className={`${CELL_SPACING} ${ALIGN[typeof column === 'string' ? 'left' : (column.align ?? 'left')]}`}
+            >
+              {columnLabel(column)}
             </th>
           ))}
         </tr>

@@ -1,12 +1,12 @@
 import 'server-only'
 
-import { setBookingStatusSchema } from '@/lib/api/admin-schemas'
+import { deleteBookingSchema, setBookingStatusSchema } from '@/lib/api/admin-schemas'
 import { invalid, withStaff } from './session'
-import { loadBookingDetail, updateBookingStatus } from '@/lib/repositories/bookings'
+import { loadBookingDetail, removeBooking, updateBookingStatus } from '@/lib/repositories/bookings'
 import { canTransition } from '@/lib/domain/booking-status'
 import type { Booking } from '@/lib/repositories/booking-mappers'
 import type { BookingStatus } from '@/lib/domain/types'
-import type { Result } from '@/lib/api/result'
+import { ok, type Result } from '@/lib/api/result'
 
 /**
  * Moving a booking through its life from the admin console.
@@ -50,6 +50,42 @@ export async function setBookingStatus(input: unknown): Promise<Result<Booking>>
 
     return await updateBookingStatus(client, bookingId, status)
   }).then(flatten)
+}
+
+/**
+ * Erase a booking outright.
+ *
+ * Cancelling keeps the record for reconciliation; this is for the rows that
+ * should never have existed — a duplicate, a test, a mis-tapped slot. It is not
+ * offered in place of cancelling: the money history goes with it, so the console
+ * asks twice before it happens.
+ */
+export async function deleteBooking(input: unknown): Promise<Result<{ bookingId: string }>> {
+  const parsed = deleteBookingSchema.safeParse(input)
+
+  if (!parsed.success) {
+    return invalid('Choose a booking to delete')
+  }
+
+  const { bookingId } = parsed.data
+
+  const outer = await withStaff(async ({ staff, client }) => {
+    // Read first so a booking deleted from another screen is refused by name
+    // rather than reported as a database failure.
+    const detail = await loadBookingDetail(client, bookingId)
+
+    if (!detail) {
+      return invalid(MISSING_MESSAGE)
+    }
+
+    await removeBooking(client, staff.clubId, bookingId)
+
+    return ok({ bookingId })
+  })
+
+  // Both branches of the callback are already results, so this only has to drop
+  // the wrapper `withStaff` adds around them.
+  return outer.success ? outer.data : outer
 }
 
 /**

@@ -89,7 +89,10 @@ export function PricingScreen({ rules, currency, onSave, onRemove }: PricingScre
     startTransition(async () => {
       try {
         const result = await onSave({ id: rule.id, isActive: !rule.isActive })
-        if (!result.success) { setError(result.error); return }
+        if (!result.success) {
+          setError(result.error)
+          return
+        }
         router.refresh()
       } catch {
         setError(SAVE_FAILURE_MESSAGE)
@@ -103,7 +106,10 @@ export function PricingScreen({ rules, currency, onSave, onRemove }: PricingScre
     startTransition(async () => {
       try {
         const result = await onRemove({ id: rule.id })
-        if (!result.success) { setError(result.error); return }
+        if (!result.success) {
+          setError(result.error)
+          return
+        }
         router.refresh()
       } catch {
         setError(SAVE_FAILURE_MESSAGE)
@@ -323,7 +329,8 @@ function toPayload(form: EditorForm, id?: string) {
     endsAtTime: form.endsAtTime || null,
     daysOfWeek: form.daysOfWeek,
     kind: form.kind,
-    valueCents: form.kind !== 'percent_delta' ? Math.round(parseFloat(form.valueCents) * 100) : null,
+    valueCents:
+      form.kind !== 'percent_delta' ? Math.round(parseFloat(form.valueCents) * 100) : null,
     valuePercent: form.kind === 'percent_delta' ? parseFloat(form.valuePercent) : null,
     priority: parseInt(form.priority, 10) || 0,
     isActive: form.isActive,
@@ -378,7 +385,10 @@ export function PricingRuleEditor({
       try {
         const payload = toPayload(form, rule?.id)
         const result = await onSave(payload)
-        if (!result.success) { setError(result.error); return }
+        if (!result.success) {
+          setError(result.error)
+          return
+        }
         onSaved()
       } catch {
         setError(SAVE_FAILURE)
@@ -390,7 +400,6 @@ export function PricingRuleEditor({
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
-
       {/* Label */}
       <FieldWrap id={id('label')} label="Rule label" className="sm:col-span-2">
         <input
@@ -404,7 +413,11 @@ export function PricingRuleEditor({
       </FieldWrap>
 
       {/* Time window */}
-      <FieldWrap id={id('starts')} label="Start time (AM price begins)" hint="Leave blank for all-day rule.">
+      <FieldWrap
+        id={id('starts')}
+        label="Start time (AM price begins)"
+        hint="Leave blank for all-day rule."
+      >
         <input
           id={id('starts')}
           type="time"
@@ -414,7 +427,11 @@ export function PricingRuleEditor({
         />
       </FieldWrap>
 
-      <FieldWrap id={id('ends')} label="End time (AM price ends)" hint="Leave blank for all-day rule.">
+      <FieldWrap
+        id={id('ends')}
+        label="End time (AM price ends)"
+        hint="Leave blank for all-day rule."
+      >
         <input
           id={id('ends')}
           type="time"
@@ -493,11 +510,7 @@ export function PricingRuleEditor({
       )}
 
       {/* Priority */}
-      <FieldWrap
-        id={id('priority')}
-        label="Priority"
-        hint="Lower numbers apply first. Use 0–999."
-      >
+      <FieldWrap id={id('priority')} label="Priority" hint="Lower numbers apply first. Use 0–999.">
         <input
           id={id('priority')}
           value={form.priority}

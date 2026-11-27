@@ -86,10 +86,9 @@ export const paymentMethodPatchSchema = paymentMethodFieldsSchema
     isActive: z.boolean().optional(),
     acknowledgeCheckoutPause: z.boolean().optional(),
   })
-  .refine(
-    (method) => PAYMENT_METHOD_PATCH_FIELDS.some((field) => method[field] !== undefined),
-    { message: 'Choose at least one payment method detail to change' },
-  )
+  .refine((method) => PAYMENT_METHOD_PATCH_FIELDS.some((field) => method[field] !== undefined), {
+    message: 'Choose at least one payment method detail to change',
+  })
 
 export const movePaymentMethodSchema = z.object({
   id: z.uuid(),
@@ -123,6 +122,20 @@ export const setBookingStatusSchema = z.object({
   bookingId: z.uuid(),
   status: z.enum(SETTABLE_BOOKING_STATUSES),
 })
+
+/**
+ * Erasing a booking. The row, its court holds, its items and its payments go
+ * together — the foreign keys cascade, so a half-deleted booking cannot be left
+ * behind owing money.
+ */
+export const deleteBookingSchema = z.object({ bookingId: z.uuid() })
+
+/**
+ * Asking to see the proofs on one booking. A read, but it still arrives from the
+ * browser, so it names nothing but the booking: the storage key comes from the
+ * row, never from the caller.
+ */
+export const bookingProofsSchema = z.object({ bookingId: z.uuid() })
 
 export const createBlockSchema = z
   .object({
@@ -234,14 +247,8 @@ const DAYS_OF_WEEK = [0, 1, 2, 3, 4, 5, 6] as const
 
 const pricingRuleFieldsSchema = z.object({
   label: z.string().trim().min(1, 'Enter a label').max(120),
-  startsAtTime: z
-    .string()
-    .regex(CLOCK_TIME_PATTERN, 'Enter a valid start time (HH:MM)')
-    .nullish(),
-  endsAtTime: z
-    .string()
-    .regex(CLOCK_TIME_PATTERN, 'Enter a valid end time (HH:MM)')
-    .nullish(),
+  startsAtTime: z.string().regex(CLOCK_TIME_PATTERN, 'Enter a valid start time (HH:MM)').nullish(),
+  endsAtTime: z.string().regex(CLOCK_TIME_PATTERN, 'Enter a valid end time (HH:MM)').nullish(),
   daysOfWeek: z.array(z.number().int().min(0).max(6)).max(7),
   kind: z.enum(RATE_KINDS),
   valueCents: z.number().int().min(0, 'Price cannot be negative').nullish(),
@@ -268,9 +275,7 @@ export const createPricingRuleSchema = pricingRuleFieldsSchema
     { message: 'Value must match the selected rate kind' },
   )
 
-export const pricingRulePatchSchema = pricingRuleFieldsSchema
-  .partial()
-  .extend({ id: z.uuid() })
+export const pricingRulePatchSchema = pricingRuleFieldsSchema.partial().extend({ id: z.uuid() })
 
 const productFieldsSchema = z.object({
   name: z.string().trim().min(1).max(120),

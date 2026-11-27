@@ -11,9 +11,11 @@ import {
   EmptyState,
   Row,
   TABLE_SHELL,
+  type TableColumn,
 } from './primitives'
-import { BookingDetailPanel } from './booking-detail-panel'
+import { DeleteBookingButton } from './delete-booking'
 import { PaymentBadge } from './payment-badge'
+import { PaymentProofButton } from './payment-proof-dialog'
 import { StatusBadge } from '@/components/ui/status-badge'
 import {
   bookingTabs,
@@ -21,29 +23,33 @@ import {
   NO_MATCH_MESSAGE,
   type BookingFilterTab,
 } from '../view/booking-filters'
-import type { BookingDetailView, BookingRow } from '../view/bookings'
+import type { BookingRow, PaymentLine } from '../view/bookings'
 import type { Result } from '@/lib/api/result'
 
 /**
- * Every booking the club has in the window, and the selected one managed
- * beside it.
+ * Every booking the club has in the window.
  *
  * This replaced the separate Orders ledger. There was never a second kind of
  * record behind it — orders were these same bookings seen through their
  * payments — and keeping two screens meant staff reconciling a transfer on one
  * and confirming the booking on the other. Both facts now sit on one row.
  *
- * Selection travels in the URL rather than in state, so a staff member can
- * send a colleague a link to the exact booking they are looking at. The search
- * and the tab do not: they are how one person is reading the list right now,
- * and putting them in the URL would make every keystroke a navigation.
+ * The booking itself opens on its own page, reached by the reference or by
+ * Manage. It used to open in a panel beside this table, which left ten columns
+ * two thirds of the screen and made the ledger scroll sideways on every
+ * desktop; the record now gets the whole page to itself.
  *
- * On a phone the list and the panel cannot share the screen, so the panel is
- * held back until a booking is actually opened and then takes the top of the
- * screen with a way back to the ledger.
+ * The search and the tab stay out of the URL: they are how one person is reading
+ * the list right now, and putting them in the query string would turn every
+ * keystroke into a navigation.
  */
 
-const COLUMNS = [
+/**
+ * Column headings, and where each one sits. The total and the row's actions
+ * follow their own content: a left-aligned "Total" over right-aligned pesos
+ * read as a broken table rather than as a styled one.
+ */
+const COLUMNS: readonly TableColumn[] = [
   'Reference',
   'Customer',
   'Court',
@@ -52,34 +58,21 @@ const COLUMNS = [
   'Status',
   'Method',
   'Payment',
-  'Total',
-  '',
-] as const
+  { label: 'Total', align: 'right' },
+  { label: '', align: 'right' },
+]
 
 export interface BookingsScreenProps {
   readonly rows: readonly BookingRow[]
-  readonly detail: BookingDetailView | null
+  readonly onDelete: (payload: unknown) => Promise<Result<unknown>>
   /**
-   * Whether the panel is showing a booking someone asked for, as opposed to
-   * the newest one the page falls back to. A phone only opens the panel for a
-   * real choice.
+   * Signs a booking's proofs on demand. Not done while rendering: a month of
+   * rows is a month of links to images the desk mostly never opens.
    */
-  readonly isSelectionExplicit?: boolean
-  readonly currency: string
-  readonly onSetStatus: (payload: unknown) => Promise<Result<unknown>>
-  readonly onMarkPaid: (payload: unknown) => Promise<Result<unknown>>
-  readonly onRefund: (payload: unknown) => Promise<Result<unknown>>
+  readonly onLoadProof: (payload: unknown) => Promise<Result<readonly PaymentLine[]>>
 }
 
-export function BookingsScreen({
-  rows,
-  detail,
-  isSelectionExplicit = false,
-  currency,
-  onSetStatus,
-  onMarkPaid,
-  onRefund,
-}: BookingsScreenProps) {
+export function BookingsScreen({ rows, onDelete, onLoadProof }: BookingsScreenProps) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<BookingFilterTab>('all')
@@ -103,48 +96,24 @@ export function BookingsScreen({
         onTabChange={setTab}
       />
 
-      <div className="grid items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,1fr)]">
-        <div className={`${TABLE_SHELL} min-w-0 sm:overflow-x-auto`}>
-          {rows.length === 0 ? (
-            <EmptyState>No bookings in this window yet.</EmptyState>
-          ) : visible.length === 0 ? (
-            <EmptyState>{NO_MATCH_MESSAGE}</EmptyState>
-          ) : (
-            <DataTable label="Bookings" columns={COLUMNS} wideClassName="sm:min-w-[1100px]">
-              {visible.map((row) => (
-                <BookingListRow key={row.id} row={row} isOpen={row.id === detail?.id} />
-              ))}
-            </DataTable>
-          )}
-        </div>
-
-        {detail ? (
-          <div
-            className={
-              isSelectionExplicit
-                ? 'min-w-0 max-lg:order-first'
-                : 'min-w-0 max-lg:hidden lg:sticky lg:top-20'
-            }
-          >
-            {isSelectionExplicit ? (
-              <Link
-                href="/admin/bookings"
-                className="mb-2 inline-flex h-11 items-center gap-1.5 text-[14px] font-semibold text-muted lg:hidden"
-              >
-                <span aria-hidden>‹</span> All bookings
-              </Link>
-            ) : null}
-
-            <BookingDetailPanel
-              detail={detail}
-              currency={currency}
-              onSetStatus={onSetStatus}
-              onMarkPaid={onMarkPaid}
-              onRefund={onRefund}
-              onDone={() => router.refresh()}
-            />
-          </div>
-        ) : null}
+      <div className={`${TABLE_SHELL} min-w-0 sm:overflow-x-auto`}>
+        {rows.length === 0 ? (
+          <EmptyState>No bookings in this window yet.</EmptyState>
+        ) : visible.length === 0 ? (
+          <EmptyState>{NO_MATCH_MESSAGE}</EmptyState>
+        ) : (
+          <DataTable label="Bookings" columns={COLUMNS} wideClassName="sm:min-w-[1000px]">
+            {visible.map((row) => (
+              <BookingListRow
+                key={row.id}
+                row={row}
+                onDelete={onDelete}
+                onLoadProof={onLoadProof}
+                onDeleted={() => router.refresh()}
+              />
+            ))}
+          </DataTable>
+        )}
       </div>
     </AdminScreen>
   )
@@ -232,14 +201,16 @@ function BookingFilters({ query, tab, tabs, onQueryChange, onTabChange }: Bookin
 
 interface BookingListRowProps {
   readonly row: BookingRow
-  readonly isOpen: boolean
+  readonly onDelete: (payload: unknown) => Promise<Result<unknown>>
+  readonly onLoadProof: (payload: unknown) => Promise<Result<readonly PaymentLine[]>>
+  readonly onDeleted: () => void
 }
 
-function BookingListRow({ row, isOpen }: BookingListRowProps) {
+function BookingListRow({ row, onDelete, onLoadProof, onDeleted }: BookingListRowProps) {
   return (
-    <Row className={isOpen ? 'bg-surface-alt max-sm:border-navy max-sm:bg-surface' : ''}>
+    <Row>
       <Cell label="Reference" mobile="title" className="font-bold tabular-nums">
-        <Link href={`/admin/bookings?booking=${row.id}`} className="hover:text-olive">
+        <Link href={`/admin/bookings/${row.id}`} className="hover:text-olive">
           {row.reference}
         </Link>
       </Cell>
@@ -263,22 +234,55 @@ function BookingListRow({ row, isOpen }: BookingListRowProps) {
         {row.method}
       </Cell>
       <Cell label="Payment" mobile="badge">
-        <PaymentBadge status={row.paymentStatus} />
+        <span className="inline-flex items-center gap-1.5">
+          <PaymentBadge status={row.paymentStatus} />
+          <ProofButton row={row} onLoadProof={onLoadProof} />
+        </span>
       </Cell>
       <Cell label="Total" mobile="trailing" className="text-right font-bold">
         {row.total}
       </Cell>
       {/* The reference is a 60px target in the corner of a card; the whole
           footer of the card is the one staff will actually hit. */}
-      <Cell label="" mobile="actions">
-        <Link
-          href={`/admin/bookings?booking=${row.id}`}
-          aria-label={`Manage ${row.reference}`}
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-line-strong bg-surface px-4 text-[13.5px] font-semibold text-ink hover:border-line-heavy max-sm:w-full sm:h-8 sm:px-3 sm:text-[13px]"
-        >
-          Manage
-        </Link>
+      <Cell label="" mobile="actions" className="text-right">
+        <div className="flex items-center justify-end gap-2 max-sm:flex-col max-sm:items-stretch">
+          <Link
+            href={`/admin/bookings/${row.id}`}
+            aria-label={`Manage ${row.reference}`}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-line-strong bg-surface px-4 text-[13.5px] font-semibold text-ink hover:border-line-heavy max-sm:w-full sm:h-8 sm:px-3 sm:text-[13px]"
+          >
+            Manage
+          </Link>
+
+          <DeleteBookingButton
+            bookingId={row.id}
+            reference={row.reference}
+            onDelete={onDelete}
+            onDeleted={onDeleted}
+            size="sm"
+          />
+        </div>
       </Cell>
     </Row>
   )
+}
+
+/**
+ * A guest attached a proof of payment to this booking, so the row offers it.
+ * The desk reconciles transfers from this list and used to have to open each
+ * booking to discover whether there was anything to check — and then leave the
+ * list to check it. Bookings with nothing uploaded show no control at all.
+ */
+function ProofButton({
+  row,
+  onLoadProof,
+}: {
+  readonly row: BookingRow
+  readonly onLoadProof: (payload: unknown) => Promise<Result<readonly PaymentLine[]>>
+}) {
+  if (!row.hasProof) {
+    return null
+  }
+
+  return <PaymentProofButton bookingId={row.id} reference={row.reference} onLoad={onLoadProof} />
 }

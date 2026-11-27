@@ -4,6 +4,7 @@ import {
   findBookingByReference,
   listBookingsInWindow,
   loadBookingDetail,
+  removeBooking,
   updateBookingStatus,
 } from './bookings'
 
@@ -290,6 +291,31 @@ describe('updateBookingStatus', () => {
 
     await expect(updateBookingStatus(client, 'booking-1', 'confirmed')).rejects.toThrow(
       /Failed to update booking: denied/,
+    )
+  })
+})
+
+/**
+ * Deleting the row is the whole statement: the court holds, items, players and
+ * payments are foreign keys with `on delete cascade`, so nothing else has to be
+ * spelled out here — and nothing may be, or a half-delete becomes possible.
+ */
+describe('removeBooking', () => {
+  it('deletes exactly one booking, inside the club it was asked about', async () => {
+    const bookings = fakeTable({ data: null, error: null })
+
+    await removeBooking(fakeClient({ bookings }), 'club-1', 'booking-1')
+
+    expect(callsFor(bookings, 'delete')).toHaveLength(1)
+    expect(bookings.calls).toContainEqual({ method: 'eq', args: ['id', 'booking-1'] })
+    expect(bookings.calls).toContainEqual({ method: 'eq', args: ['club_id', 'club-1'] })
+  })
+
+  it('throws with context when the delete is rejected', async () => {
+    const client = fakeClient({ bookings: fakeTable({ data: null, error: { message: 'denied' } }) })
+
+    await expect(removeBooking(client, 'club-1', 'booking-1')).rejects.toThrow(
+      /Failed to delete booking: denied/,
     )
   })
 })

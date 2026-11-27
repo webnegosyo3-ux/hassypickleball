@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { BookingDetailPanel } from './booking-detail-panel'
-import { toBookingDetailView } from '../view/bookings'
+import { toBookingDetailView, type ProofLookup } from '../view/bookings'
 import { club, makeBooking } from '../../../../test/admin-fixtures'
 
 /**
@@ -23,7 +23,7 @@ function panelProps(detail = view()) {
   }
 }
 
-function view(spec: Parameters<typeof makeBooking>[0] | null = null, signed = {}) {
+function view(spec: Parameters<typeof makeBooking>[0] | null = null, signed?: ProofLookup) {
   return toBookingDetailView(
     makeBooking(
       spec ?? {
@@ -220,7 +220,7 @@ describe('BookingDetailPanel', () => {
         segments: [{ courtId: 'court-1', from: '17:00', to: '18:00' }],
         payments: [{ method: 'gcash', status: 'pending', proofUrl: 'PB-4821/proof.png' }],
       },
-      { 'PB-4821/proof.png': 'https://cdn.example/signed?token=abc' },
+      { urls: { 'PB-4821/proof.png': 'https://cdn.example/signed?token=abc' }, failures: {} },
     )
 
     // Act
@@ -230,6 +230,57 @@ describe('BookingDetailPanel', () => {
     const link = screen.getByRole('link', { name: /proof/i })
     expect(link).toHaveAttribute('href', 'https://cdn.example/signed?token=abc')
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+  })
+
+  /**
+   * The desk checks a photograph of a banking app against the amount on the
+   * row. Sending staff to another tab for every payment meant the check was
+   * usually skipped.
+   */
+  it('shows the proof itself, not only a link to it', () => {
+    // Arrange
+    const withProof = view(
+      {
+        segments: [{ courtId: 'court-1', from: '17:00', to: '18:00' }],
+        payments: [{ method: 'gcash', status: 'pending', proofUrl: 'PB-4821/proof.png' }],
+      },
+      { urls: { 'PB-4821/proof.png': 'https://cdn.example/signed?token=abc' }, failures: {} },
+    )
+
+    // Act
+    render(<BookingDetailPanel {...panelProps(withProof)} />)
+
+    // Assert
+    const link = screen.getByRole('link', { name: /proof/i })
+    expect(link.querySelector('img')).toHaveAttribute('src', 'https://cdn.example/signed?token=abc')
+  })
+
+  it('says a proof exists when its link could not be signed', () => {
+    // Arrange — a proof on file, but the signing step produced nothing.
+    const unreadable = view({
+      segments: [{ courtId: 'court-1', from: '17:00', to: '18:00' }],
+      payments: [{ method: 'gcash', status: 'pending', proofUrl: 'PB-4821/proof.png' }],
+    })
+
+    // Act
+    render(<BookingDetailPanel {...panelProps(unreadable)} />)
+
+    // Assert — silence here would read as “the guest attached nothing”.
+    expect(screen.getByText(/could not be opened/i)).toBeInTheDocument()
+  })
+
+  it('flags money still owed with no proof to check', () => {
+    // Arrange
+    const waiting = view({
+      segments: [{ courtId: 'court-1', from: '17:00', to: '18:00' }],
+      payments: [{ method: 'bank_transfer', status: 'pending' }],
+    })
+
+    // Act
+    render(<BookingDetailPanel {...panelProps(waiting)} />)
+
+    // Assert
+    expect(screen.getByText(/no proof uploaded yet/i)).toBeInTheDocument()
   })
 
   it('shows no proof link for a payment that has none', () => {
@@ -290,6 +341,14 @@ describe('BookingDetailPanel', () => {
 
     // Assert
     expect(screen.getByText('Member — approved for desk payment.')).toBeInTheDocument()
+  })
+
+  it('carries the page’s heading when it is the page', () => {
+    // Act
+    render(<BookingDetailPanel {...panelProps()} headingLevel="h1" />)
+
+    // Assert — one h1 per page: the booking's own reference.
+    expect(screen.getByRole('heading', { level: 1, name: 'PB-4821' })).toBeInTheDocument()
   })
 })
 

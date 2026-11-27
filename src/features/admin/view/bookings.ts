@@ -32,6 +32,8 @@ export type BookingRow = {
   readonly status: BookingStatus
   readonly method: string
   readonly paymentStatus: PaymentStatus
+  /** Whether a guest uploaded a proof for any payment, so the list can say so. */
+  readonly hasProof: boolean
   readonly total: string
 }
 
@@ -45,8 +47,21 @@ export type PaymentLine = {
   readonly method: string
   readonly status: PaymentStatus
   readonly amount: string
+  /**
+   * Whether the guest uploaded a proof, whether or not it could be opened.
+   * Kept apart from `proofHref` so the console can tell "no proof" from
+   * "a proof we could not sign a link to" instead of showing silence for both.
+   */
+  readonly hasProof: boolean
   /** A signed, time-boxed link to the guest's uploaded proof, when there is one. */
   readonly proofHref: string | null
+  /**
+   * Why that link is missing, when one was expected: the storage secret is
+   * unset, the bucket is gone, or the object itself is. The desk reads this,
+   * so it has to say which — "check the storage key" for all three sent people
+   * looking in the wrong place.
+   */
+  readonly proofError: string | null
 }
 
 export type BookingDetailView = {
@@ -68,6 +83,24 @@ export type BookingDetailView = {
 
 /** Proof storage path -> signed URL. The page signs; this module only renders. */
 export type SignedProofUrls = Readonly<Record<string, string>>
+
+/** Proof storage path -> why it could not be signed. */
+export type ProofFailures = Readonly<Record<string, string>>
+
+/**
+ * What signing produced for one booking: the links that worked and the reasons
+ * the rest did not. Signing is not all-or-nothing — one unreadable proof must
+ * not hide the readable ones beside it.
+ */
+export type ProofLookup = {
+  readonly urls: SignedProofUrls
+  readonly failures: ProofFailures
+}
+
+/** Signing nothing: the shape a booking with no proofs is described with. */
+export const NO_PROOFS: ProofLookup = { urls: {}, failures: {} }
+
+const UNOPENABLE = 'That proof could not be opened.'
 
 const METHOD_LABELS: Record<Enums['payment_method'], string> = {
   cash: 'Cash',
@@ -164,14 +197,19 @@ function outstandingCents(detail: BookingDetail): number {
   return Math.max(0, detail.booking.totalCents - settled + returned)
 }
 
-function toPaymentLine(payment: Payment, club: Club, signed: SignedProofUrls): PaymentLine {
+function toPaymentLine(payment: Payment, club: Club, proofs: ProofLookup): PaymentLine {
+  // An unsigned path stays unlinked: a link that 403s is worse than none.
+  const href = payment.proofUrl ? (proofs.urls[payment.proofUrl] ?? null) : null
+
   return {
     id: payment.id,
     method: METHOD_LABELS[payment.method],
     status: PAYMENT_STATUS[payment.status],
     amount: formatMoney(payment.amountCents, club.currency),
-    // An unsigned path stays unlinked: a link that 403s is worse than none.
-    proofHref: payment.proofUrl ? (signed[payment.proofUrl] ?? null) : null,
+    hasProof: Boolean(payment.proofUrl),
+    proofHref: href,
+    proofError:
+      payment.proofUrl && href === null ? (proofs.failures[payment.proofUrl] ?? UNOPENABLE) : null,
   }
 }
 
@@ -195,6 +233,7 @@ export function toBookingRows(
       status: booking.status,
       method: methodOf(detail.payments),
       paymentStatus: paymentStatusOf(detail.payments),
+      hasProof: detail.payments.some((payment) => Boolean(payment.proofUrl)),
       total: formatMoney(booking.totalCents, club.currency),
     }
   })
@@ -203,7 +242,7 @@ export function toBookingRows(
 export function toBookingDetailView(
   detail: BookingDetail,
   club: Club,
-  signedProofUrls: SignedProofUrls = {},
+  proofs: ProofLookup = NO_PROOFS,
 ): BookingDetailView {
   const { booking } = detail
 
@@ -228,8 +267,27 @@ export function toBookingDetailView(
     ],
     total: formatMoney(booking.totalCents, club.currency),
     note: booking.notes ?? NO_NOTE,
-    payments: detail.payments.map((payment) => toPaymentLine(payment, club, signedProofUrls)),
+    payments: detail.payments.map((payment) => toPaymentLine(payment, club, proofs)),
     nextStatuses: nextStatuses(booking.status),
     outstandingCents: outstandingCents(detail),
   }
+}
+
+/**
+ * Just the payments that carry a proof, for the ledger's preview dialog.
+ *
+ * The list signs a proof only when the desk asks to see one — signing the whole
+ * window's proofs on every page load is a storage call per row for images most
+ * of them will never open — so this is called from the dialog's own action with
+ * the URLs signed for that one booking. Rows are shaped by the same function
+ * the detail page uses, so a payment reads the same in both places.
+ */
+export function toPaymentProofs(
+  payments: readonly Payment[],
+  club: Club,
+  proofs: ProofLookup,
+): readonly PaymentLine[] {
+  return payments
+    .filter((payment) => Boolean(payment.proofUrl))
+    .map((payment) => toPaymentLine(payment, club, proofs))
 }

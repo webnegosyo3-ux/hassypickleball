@@ -1,4 +1,5 @@
 import {
+  coveredMinutes,
   formatHourLabel,
   isLive,
   MINUTES_PER_HOUR,
@@ -51,6 +52,14 @@ export type ScheduleColumn = {
   readonly openMinutes: number
   /** "12.5 hrs open", or "Fully booked" when nothing is left. */
   readonly openLabel: string
+  /**
+   * "2 bookings · 1 hold", or "Nothing booked".
+   *
+   * The desk's first question about a court is whether anyone has it, and the
+   * colour of an entry answers it only if you scan the whole column. This says
+   * it in words, above the grid as well as in the phone list.
+   */
+  readonly summary: string
 }
 
 export type ScheduleGrid = {
@@ -203,16 +212,7 @@ function blockEntries(courtId: string, input: ScheduleGridInput, window: Opening
  * leave the open total negative.
  */
 function heldMinutes(placed: readonly Placed[]): number {
-  const sorted = [...placed].sort((a, b) => a.from - b.from)
-
-  return sorted.reduce<{ readonly total: number; readonly coveredTo: number }>(
-    (state, span) => {
-      const from = Math.max(span.from, state.coveredTo)
-
-      return span.to <= from ? state : { total: state.total + (span.to - from), coveredTo: span.to }
-    },
-    { total: 0, coveredTo: -Infinity },
-  ).total
+  return coveredMinutes(placed)
 }
 
 /** "12.5 hrs open" — halves are the finest granularity the club books in. */
@@ -226,6 +226,24 @@ function openLabel(minutes: number): string {
   return `${hours} ${hours === 1 ? 'hr' : 'hrs'} open`
 }
 
+export const NOTHING_BOOKED = 'Nothing booked'
+
+function countLabel(count: number, noun: string): readonly string[] {
+  return count === 0 ? [] : [`${count} ${noun}${count === 1 ? '' : 's'}`]
+}
+
+/**
+ * What the court is carrying, counted the way staff talk about it: a booking
+ * is a guest on the court, a hold is the club taking the time back.
+ */
+function summarise(entries: readonly ScheduleEntry[]): string {
+  const holds = entries.filter((entry) => entry.blockId !== null).length
+
+  const parts = [...countLabel(entries.length - holds, 'booking'), ...countLabel(holds, 'hold')]
+
+  return parts.length === 0 ? NOTHING_BOOKED : parts.join(' · ')
+}
+
 export function buildScheduleGrid(input: ScheduleGridInput): ScheduleGrid {
   const window = openingWindow(input.club)
 
@@ -236,14 +254,16 @@ export function buildScheduleGrid(input: ScheduleGridInput): ScheduleGrid {
     ].sort((a, b) => a.from - b.from)
 
     const openMinutes = Math.max(0, window.totalMinutes - heldMinutes(placed))
+    const entries = placed.map((entry) => entry.entry)
 
     return {
       courtId: court.id,
       courtName: court.name,
       meta: `${environmentLabel(court.environment)} · ${formatMoney(court.basePriceCents, input.club.currency)}/hr`,
-      entries: placed.map((entry) => entry.entry),
+      entries,
       openMinutes,
       openLabel: openLabel(openMinutes),
+      summary: summarise(entries),
     }
   })
 

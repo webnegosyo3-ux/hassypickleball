@@ -2,9 +2,14 @@ import type { NextConfig } from 'next'
 
 type RemotePatterns = NonNullable<NonNullable<NextConfig['images']>['remotePatterns']>
 
-/** Catalog images live in Supabase Storage; next/image refuses unlisted remote hosts. */
+/**
+ * Catalog images live in Supabase Storage; next/image refuses unlisted remote
+ * hosts. `object/**` rather than `object/public/**` because payment proofs are
+ * read through signed URLs (`object/sign/...`) and the admin console previews
+ * them.
+ */
 function supabaseImageHost(): RemotePatterns {
-  return hostPattern(process.env.NEXT_PUBLIC_SUPABASE_URL, '/storage/v1/object/public/**')
+  return hostPattern(process.env.NEXT_PUBLIC_SUPABASE_URL, '/storage/v1/object/**')
 }
 
 function hostPattern(url: string | undefined, pathname: string): RemotePatterns {

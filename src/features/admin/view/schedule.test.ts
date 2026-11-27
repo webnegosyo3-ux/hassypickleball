@@ -356,6 +356,86 @@ describe('buildScheduleGrid availability', () => {
   })
 })
 
+describe('buildScheduleGrid summary', () => {
+  it('says a court with nothing on it is not booked', () => {
+    // Act
+    const grid = emptyGrid()
+
+    // Assert
+    expect(grid.columns[0].summary).toBe('Nothing booked')
+  })
+
+  it('counts the bookings holding a court', () => {
+    // Arrange
+    const bookings = [
+      makeBooking({
+        id: 'b1',
+        contactName: 'Maya',
+        segments: [{ courtId: harbor.id, from: '08:00', to: '09:00' }],
+      }),
+      makeBooking({
+        id: 'b2',
+        contactName: 'Jun',
+        segments: [{ courtId: harbor.id, from: '10:00', to: '11:00' }],
+      }),
+    ]
+
+    // Act
+    const [column] = buildScheduleGrid({
+      club,
+      courts: [harbor],
+      bookings,
+      blocks: [],
+      day: DAY,
+    }).columns
+
+    // Assert
+    expect(column.summary).toBe('2 bookings')
+  })
+
+  it('tells a staff hold apart from a booking, one of each reading singular', () => {
+    // Arrange
+    const bookings = [
+      makeBooking({ segments: [{ courtId: harbor.id, from: '10:00', to: '11:00' }] }),
+    ]
+    const blocks = [makeBlock({ courtId: harbor.id, kind: 'closed', from: '12:00', to: '13:00' })]
+
+    // Act
+    const [column] = buildScheduleGrid({
+      club,
+      courts: [harbor],
+      bookings,
+      blocks,
+      day: DAY,
+    }).columns
+
+    // Assert
+    expect(column.summary).toBe('1 booking · 1 hold')
+  })
+
+  it('says nothing is booked rather than counting a cancelled booking', () => {
+    // Arrange
+    const bookings = [
+      makeBooking({
+        status: 'cancelled',
+        segments: [{ courtId: harbor.id, from: '10:00', to: '11:00' }],
+      }),
+    ]
+
+    // Act
+    const [column] = buildScheduleGrid({
+      club,
+      courts: [harbor],
+      bookings,
+      blocks: [],
+      day: DAY,
+    }).columns
+
+    // Assert
+    expect(column.summary).toBe('Nothing booked')
+  })
+})
+
 describe('buildScheduleGrid releasable entries', () => {
   it('carries the block id so the screen can offer to release it', () => {
     // Arrange

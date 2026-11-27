@@ -140,3 +140,21 @@ export async function updateBookingStatus(
 
   return toBooking(data as NonNullable<typeof data>)
 }
+
+/**
+ * Erase a booking.
+ *
+ * Court holds, items, players and payments are `on delete cascade`, and
+ * `bookings_sync_customer_rollups` fires on delete, so the customer's totals
+ * and the court's availability correct themselves in the same statement. The
+ * club filter is belt and braces: RLS already decides what staff can reach.
+ */
+export async function removeBooking(
+  client: Client,
+  clubId: string,
+  bookingId: string,
+): Promise<void> {
+  const { error } = await client.from('bookings').delete().eq('id', bookingId).eq('club_id', clubId)
+
+  raise('Failed to delete booking', error)
+}

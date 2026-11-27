@@ -47,7 +47,14 @@ function renderScreen(overrides: Partial<React.ComponentProps<typeof ScheduleScr
       club={club}
       courts={courts}
       grid={buildScheduleGrid({ club, courts, bookings, blocks, day: DAY })}
-      stats={buildScheduleStats({ club, courts, bookings, day: DAY })}
+      stats={buildScheduleStats({
+        club,
+        courts,
+        bookings,
+        blocks,
+        day: DAY,
+        today: DAY,
+      })}
       onBlock={onBlock}
       onRelease={onRelease}
       {...overrides}
@@ -140,7 +147,14 @@ describe('ScheduleScreen', () => {
     renderScreen({
       courts: [],
       grid: empty,
-      stats: buildScheduleStats({ club, courts: [], bookings: [], day: DAY }),
+      stats: buildScheduleStats({
+        club,
+        courts: [],
+        bookings: [],
+        blocks: [],
+        day: DAY,
+        today: DAY,
+      }),
     })
 
     // Assert
@@ -157,6 +171,17 @@ describe('ScheduleScreen availability', () => {
     // Assert — Harbor holds 90 booked and 60 blocked minutes; Maple is untouched.
     expect(within(grid).getByText('12.5 hrs open')).toBeInTheDocument()
     expect(within(grid).getByText('15 hrs open')).toBeInTheDocument()
+  })
+
+  it('says whether a court is booked, not only how much of it is free', () => {
+    // Act
+    renderScreen()
+    const grid = screen.getByRole('table', { name: 'Court schedule' })
+
+    // Assert — the count sits above each column, where the day is scanned,
+    // instead of having to be read out of the entries below it.
+    expect(within(grid).getByText('1 booking · 1 hold')).toBeInTheDocument()
+    expect(within(grid).getByText('Nothing booked')).toBeInTheDocument()
   })
 
   it('shows the day being viewed in the date picker', () => {
@@ -466,7 +491,14 @@ describe('ScheduleScreen on a phone', () => {
     renderScreen({
       courts: [],
       grid: empty,
-      stats: buildScheduleStats({ club, courts: [], bookings: [], day: DAY }),
+      stats: buildScheduleStats({
+        club,
+        courts: [],
+        bookings: [],
+        blocks: [],
+        day: DAY,
+        today: DAY,
+      }),
     })
 
     // Assert

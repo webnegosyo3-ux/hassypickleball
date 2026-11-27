@@ -19,8 +19,7 @@ import { ok } from '@/lib/api/result'
  * the thin gate that also stamps the clubId from the session.
  */
 export async function savePricingRule(input: unknown): Promise<Result<PricingRule>> {
-  const hasId =
-    typeof input === 'object' && input !== null && 'id' in input
+  const hasId = typeof input === 'object' && input !== null && 'id' in input
 
   if (hasId) {
     const parsed = pricingRulePatchSchema.safeParse(input)
@@ -69,9 +68,7 @@ export async function savePricingRule(input: unknown): Promise<Result<PricingRul
   })
 }
 
-export async function removePricingRule(
-  input: unknown,
-): Promise<Result<{ id: string }>> {
+export async function removePricingRule(input: unknown): Promise<Result<{ id: string }>> {
   const parsed =
     typeof input === 'object' && input !== null && 'id' in input
       ? { success: true as const, data: input as { id: string } }

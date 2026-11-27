@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { sessionExpiresAt } from '@/lib/auth/session-cookie'
 import { readPublicEnv } from '@/lib/env'
 
 /**
@@ -19,8 +20,30 @@ function hasSessionCookie(request: NextRequest): boolean {
   return request.cookies.getAll().some((cookie) => cookie.name.startsWith('sb-'))
 }
 
+/**
+ * A token that expires further out than this cannot need refreshing, so the
+ * auth round trip below is skipped. The margin absorbs clock skew and the few
+ * seconds a request spends in flight.
+ */
+const REFRESH_MARGIN_SECONDS = 60
+
+/**
+ * Refresh is only worth paying for when the session is spent or about to be.
+ * getUser() is ~150 ms of network before any page data is read, and on a warm
+ * console session it was the single largest cost of a navigation.
+ *
+ * This reads the cookie to decide whether to *ask*; it never decides who the
+ * caller is. Server Components still call getUser(), so a cookie edited by hand
+ * buys nothing but a stale-looking session that fails the check after it.
+ */
+function mayNeedRefresh(request: NextRequest): boolean {
+  const expiresAt = sessionExpiresAt(request.cookies.getAll())
+
+  return expiresAt === null || expiresAt <= Date.now() / 1000 + REFRESH_MARGIN_SECONDS
+}
+
 export async function proxy(request: NextRequest) {
-  if (!hasSessionCookie(request)) {
+  if (!hasSessionCookie(request) || !mayNeedRefresh(request)) {
     return NextResponse.next({ request })
   }
 

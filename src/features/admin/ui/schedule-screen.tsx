@@ -8,7 +8,7 @@ import { ScheduleAgenda } from './schedule-agenda'
 import { SCHEDULE_TONE_STYLES } from './schedule-tones'
 import { useIsDesktop } from './desktop-viewport'
 import { buildScheduleAgenda, SCHEDULE_TONE_LABELS } from '../view/schedule-agenda'
-import type { ScheduleGrid, ScheduleTone } from '../view/schedule'
+import { NOTHING_BOOKED, type ScheduleGrid, type ScheduleTone } from '../view/schedule'
 import type { StatCard } from '../view/schedule-stats'
 import type { AvailabilityBlock } from '@/lib/repositories/booking-mappers'
 import type { Club, Court } from '@/lib/repositories/mappers'
@@ -185,6 +185,15 @@ function ScheduleGridView({ grid, isPending, onRelease }: ScheduleGridViewProps)
                 </span>
                 <span className="mt-0.5 block text-[12px] font-semibold text-olive">
                   {column.openLabel}
+                </span>
+                {/* Whether anyone has this court, in words: the entries below
+                    answer it only if the whole column is read. */}
+                <span
+                  className={`mt-0.5 block text-[12px] font-semibold ${
+                    column.summary === NOTHING_BOOKED ? 'text-subtle' : 'text-ink'
+                  }`}
+                >
+                  {column.summary}
                 </span>
               </span>
             ))}

@@ -48,6 +48,28 @@ export function overlapMinutes(
   return Math.max(0, Math.min(a.to, b.to) - Math.max(a.from, b.from))
 }
 
+/**
+ * Minutes covered by the union of these intervals — an overlap counts once.
+ *
+ * A block laid over a booking is two intervals covering one stretch of time, so
+ * summing them would report more occupied minutes than the day contains and
+ * leave the open total negative.
+ */
+export function coveredMinutes(
+  intervals: readonly { readonly from: number; readonly to: number }[],
+): number {
+  const sorted = [...intervals].sort((left, right) => left.from - right.from)
+
+  return sorted.reduce<{ readonly total: number; readonly coveredTo: number }>(
+    (state, span) => {
+      const from = Math.max(span.from, state.coveredTo)
+
+      return span.to <= from ? state : { total: state.total + (span.to - from), coveredTo: span.to }
+    },
+    { total: 0, coveredTo: -Infinity },
+  ).total
+}
+
 /** "7:00 AM" for the schedule's time gutter. */
 export function formatHourLabel(hour: number): string {
   const suffix = hour < 12 ? 'AM' : 'PM'

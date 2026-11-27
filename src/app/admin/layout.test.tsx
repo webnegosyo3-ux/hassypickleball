@@ -97,9 +97,7 @@ describe('AdminLayout', () => {
 
     await renderLayout()
 
-    expect(screen.getByTestId('admin-nav')).toHaveTextContent(
-      'HASSY PICKLEBALL COURT / Mika Reyes',
-    )
+    expect(screen.getByTestId('admin-nav')).toHaveTextContent('HASSY PICKLEBALL COURT / Mika Reyes')
     expect(screen.getByText('Console')).toBeInTheDocument()
   })
 })

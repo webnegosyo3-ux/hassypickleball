@@ -199,7 +199,10 @@ function ClubHomeLink({ clubName }: Pick<AdminNavProps, 'clubName'>) {
     <Link
       href="/admin"
       data-admin-nav-focus="brand"
-      className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-white hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:order-1 lg:mb-1 lg:min-h-0 lg:flex-none"
+      /* The logo is the whole mark here, and an image with empty alt would leave
+         the link unnamed; the club's name is still what it is called. */
+      aria-label={clubName}
+      className="flex min-h-11 min-w-0 flex-1 items-center text-white hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:order-1 lg:mb-1 lg:min-h-0 lg:flex-none"
     >
       <Image
         src="/logo.jpg"
@@ -208,9 +211,6 @@ function ClubHomeLink({ clubName }: Pick<AdminNavProps, 'clubName'>) {
         height={36}
         className="size-9 flex-none rounded-full bg-white"
       />
-      <span className="truncate font-[family-name:var(--font-display)] text-[17px] font-bold tracking-[-0.02em] lg:text-[18px]">
-        {clubName}
-      </span>
     </Link>
   )
 }

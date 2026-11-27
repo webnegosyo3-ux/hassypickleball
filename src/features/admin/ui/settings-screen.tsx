@@ -118,7 +118,11 @@ export function SettingsScreen({ club, canEdit, onSave }: SettingsScreenProps) {
           </p>
         ) : null}
 
-        <Field id={`${prefix}-name`} label="Club name" hint="Shown in the header, footer and emails.">
+        <Field
+          id={`${prefix}-name`}
+          label="Club name"
+          hint="Shown in the header, footer and emails."
+        >
           <input {...field('name')} required maxLength={120} className={FIELD} />
         </Field>
 

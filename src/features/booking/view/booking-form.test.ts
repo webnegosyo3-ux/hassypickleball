@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildBookingFormOrder, buildBookingFormSummary } from './booking-form'
+import { buildBookingFormOrder, buildBookingFormSummary, guestContactEmail } from './booking-form'
 import type { BookableAddon } from './booking-form'
 import type { CapacityBand } from '@/lib/domain/pax'
 import type { AvailabilitySlot } from '@/lib/services/availability'
@@ -32,11 +32,20 @@ const BAND: CapacityBand = {
 
 const CONTACT = {
   contactName: '  Ana Cruz ',
-  contactEmail: ' ana@example.com ',
   contactPhone: ' 0917 000 0000 ',
   notes: '   ',
   willPresentId: true,
 }
+
+describe('guestContactEmail', () => {
+  it('keys the placeholder address on the digits of the phone number', () => {
+    expect(guestContactEmail(' 0917 000 0000 ')).toBe('09170000000@guest.invalid')
+  })
+
+  it('still produces a usable address when no phone number was given', () => {
+    expect(guestContactEmail('')).toBe('walk-in@guest.invalid')
+  })
+})
 
 describe('buildBookingFormOrder', () => {
   it('sends the chosen window and the details as typed', () => {
@@ -53,7 +62,7 @@ describe('buildBookingFormOrder', () => {
     expect(order).toMatchObject({
       clubId: 'club-1',
       contactName: 'Ana Cruz',
-      contactEmail: 'ana@example.com',
+      contactEmail: '09170000000@guest.invalid',
       contactPhone: '0917 000 0000',
       willPresentId: true,
       paymentMethodId: 'gcash',

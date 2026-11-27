@@ -27,15 +27,14 @@ export default async function AdminSchedulePage({
   const day = parseDayString(typeof requested === 'string' ? requested : undefined, today.day)
   const window = dayWindow(club, day)
 
-  const courts = await listActiveCourts(client, club.id)
-
-  const [bookings, blocks] = await Promise.all([
+  // One round of requests, not two. Courts used to be read first so its ids
+  // could narrow the block query; blocks are now scoped by club instead, so all
+  // three reads are independent. That is one Supabase round trip (~150 ms) off
+  // every visit to the screen the desk lives in.
+  const [courts, bookings, blocks] = await Promise.all([
+    listActiveCourts(client, club.id),
     listBookingsInWindow(client, { clubId: club.id, from: window.from, to: window.to }),
-    listBlocksInWindow(client, {
-      courtIds: courts.map((court) => court.id),
-      from: window.from,
-      to: window.to,
-    }),
+    listBlocksInWindow(client, { clubId: club.id, from: window.from, to: window.to }),
   ])
 
   return (
@@ -46,7 +45,14 @@ export default async function AdminSchedulePage({
       club={club}
       courts={courts}
       grid={buildScheduleGrid({ club, courts, bookings, blocks, day: window.day })}
-      stats={buildScheduleStats({ club, courts, bookings, day: window.day })}
+      stats={buildScheduleStats({
+        club,
+        courts,
+        bookings,
+        blocks,
+        day: window.day,
+        today: today.day,
+      })}
       onBlock={blockCourtTimeAction}
       onRelease={removeCourtBlockAction}
     />

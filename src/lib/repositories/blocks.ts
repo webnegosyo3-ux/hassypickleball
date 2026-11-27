@@ -12,7 +12,7 @@ import type { Enums } from './rows'
  */
 
 export type BlockWindow = {
-  readonly courtIds: readonly string[]
+  readonly clubId: string
   readonly from: Date
   readonly to: Date
 }
@@ -27,18 +27,23 @@ export type CreateBlockInput = {
   readonly createdByUserId: string | null
 }
 
+/**
+ * Scoped by club, not by a list of court ids. Blocks carry no club of their
+ * own, so the club arrives through the court join; doing it here means a caller
+ * can ask for courts, bookings and blocks in one round of requests instead of
+ * reading the court list first just to build an `in` filter.
+ *
+ * The embedded `courts!inner(club_id)` is a filter, not payload: rows whose
+ * court belongs to another club drop out, and RLS on `courts` still applies.
+ */
 export async function listBlocksInWindow(
   client: Client,
   window: BlockWindow,
 ): Promise<readonly AvailabilityBlock[]> {
-  if (window.courtIds.length === 0) {
-    return []
-  }
-
   const { data, error } = await client
     .from('availability_blocks')
-    .select('*')
-    .in('court_id', [...window.courtIds])
+    .select('*, courts!inner(club_id)')
+    .eq('courts.club_id', window.clubId)
     .lt('starts_at', window.to.toISOString())
     .gt('ends_at', window.from.toISOString())
     .order('starts_at', { ascending: true })

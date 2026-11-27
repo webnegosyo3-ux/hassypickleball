@@ -360,7 +360,8 @@ describe('toBookingDetailView', () => {
 
     // Act
     const detail = toBookingDetailView(booking, club, {
-      'PB-4821/proof.png': 'https://cdn.example/signed?token=abc',
+      urls: { 'PB-4821/proof.png': 'https://cdn.example/signed?token=abc' },
+      failures: {},
     })
 
     // Assert
@@ -375,10 +376,36 @@ describe('toBookingDetailView', () => {
     })
 
     // Act — nothing was signed.
-    const detail = toBookingDetailView(booking, club, {})
+    const detail = toBookingDetailView(booking, club, { urls: {}, failures: {} })
 
     // Assert
     expect(detail.payments[0].proofHref).toBeNull()
+    // Still a proof on file: the desk has to know to ask about it.
+    expect(detail.payments[0].hasProof).toBe(true)
+    expect(detail.payments[0].proofError).toBeTruthy()
+  })
+
+  /**
+   * "Could not be opened" covered three different problems, and the one an
+   * empty storage secret produces cannot be fixed by anyone at the club.
+   */
+  it('carries the reason a proof could not be signed, so it can be acted on', () => {
+    // Arrange
+    const booking = makeBooking({
+      segments: [{ courtId: 'court-1', from: '17:00', to: '18:00' }],
+      payments: [{ method: 'gcash', status: 'pending', proofUrl: 'PB-4821/proof.png' }],
+    })
+
+    // Act
+    const detail = toBookingDetailView(booking, club, {
+      urls: {},
+      failures: { 'PB-4821/proof.png': 'SUPABASE_SERVICE_ROLE_KEY is not set on this server.' },
+    })
+
+    // Assert
+    expect(detail.payments[0].proofError).toBe(
+      'SUPABASE_SERVICE_ROLE_KEY is not set on this server.',
+    )
   })
 
   /** What the record-payment form should default to, so staff do not retype it. */

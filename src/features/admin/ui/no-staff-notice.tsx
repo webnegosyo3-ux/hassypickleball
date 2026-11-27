@@ -28,7 +28,10 @@ export function NoStaffNotice() {
       </p>
 
       <div className="flex flex-col gap-2.5">
-        <Link href="/staff/sign-in" className={`${LINK_CLASS} bg-navy text-white hover:bg-navy-deep`}>
+        <Link
+          href="/staff/sign-in"
+          className={`${LINK_CLASS} bg-navy text-white hover:bg-navy-deep`}
+        >
           Sign in with a different account
         </Link>
         <Link

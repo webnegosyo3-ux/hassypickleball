@@ -20,7 +20,8 @@
     "db:link": "supabase link --project-ref $SUPABASE_PROJECT_REF",
     "db:push": "bash scripts/db-push.sh",
     "db:seed:remote": "bash scripts/db-push.sh --include-seed",
-    "db:types:remote": "supabase gen types typescript --db-url \"$SUPABASE_DB_URL\" > src/lib/supabase/database.types.ts"
+    "db:types:remote": "supabase gen types typescript --db-url \"$SUPABASE_DB_URL\" > src/lib/supabase/database.types.ts",
+    "admin:create": "node scripts/create-admin.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

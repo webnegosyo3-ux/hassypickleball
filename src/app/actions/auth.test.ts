@@ -64,7 +64,9 @@ describe('signInWithEmailAndPassword', () => {
 
   it('gives one generic message for bad credentials so emails cannot be enumerated', async () => {
     // Arrange — a distinct "no such user" message would turn this into a staff directory.
-    signInWithPassword.mockResolvedValue({ error: { message: 'Invalid login credentials' } })
+    signInWithPassword.mockResolvedValue({
+      error: { code: 'invalid_credentials', message: 'Invalid login credentials' },
+    })
 
     // Act
     const result = await signInWithEmailAndPassword(CREDENTIALS)
@@ -76,5 +78,32 @@ describe('signInWithEmailAndPassword', () => {
       code: 'AUTH_ERROR',
     })
     expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it('names an unconfirmed address instead of blaming the password', async () => {
+    // Arrange — Supabase only answers this once the password matched.
+    signInWithPassword.mockResolvedValue({
+      error: { code: 'email_not_confirmed', message: 'Email not confirmed' },
+    })
+
+    // Act
+    const result = await signInWithEmailAndPassword(CREDENTIALS)
+
+    // Assert
+    expect(result).toMatchObject({ success: false, code: 'AUTH_ERROR' })
+    expect(result.success === false && result.error).toContain('has not been confirmed')
+    expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it('does not blame the password when the request never reached Supabase', async () => {
+    // Arrange
+    signInWithPassword.mockRejectedValue(new Error('fetch failed'))
+
+    // Act
+    const result = await signInWithEmailAndPassword(CREDENTIALS)
+
+    // Assert
+    expect(result).toMatchObject({ success: false, code: 'AUTH_ERROR' })
+    expect(result.success === false && result.error).toContain('could not be reached')
   })
 })
