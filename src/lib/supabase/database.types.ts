@@ -748,6 +748,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      court_day_busy: {
+        Args: {
+          p_club_id: string
+          p_from: string
+          p_to: string
+        }
+        Returns: {
+          court_id: string
+          starts_at: string
+          ends_at: string
+          is_block: boolean
+        }[]
+      }
       create_booking: {
         Args: {
           p_club_id: string

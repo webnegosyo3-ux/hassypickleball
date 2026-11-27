@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ScheduleScreen } from './schedule-screen'
 import { buildScheduleGrid } from '../view/schedule'
@@ -42,6 +42,7 @@ function renderScreen(overrides: Partial<React.ComponentProps<typeof ScheduleScr
   render(
     <ScheduleScreen
       day={DAY}
+      today={DAY}
       dayLabel="Tue, 04 Aug 2026"
       club={club}
       courts={courts}
@@ -158,27 +159,36 @@ describe('ScheduleScreen availability', () => {
     expect(within(grid).getByText('15 hrs open')).toBeInTheDocument()
   })
 
-  it('links to the day before and the day after, so any date can be reached', () => {
+  it('shows the day being viewed in the date picker', () => {
     // Act
     renderScreen()
 
     // Assert
-    expect(screen.getByRole('link', { name: /previous day/i })).toHaveAttribute(
-      'href',
-      '/admin?day=2026-08-03',
-    )
-    expect(screen.getByRole('link', { name: /next day/i })).toHaveAttribute(
-      'href',
-      '/admin?day=2026-08-05',
-    )
+    expect(screen.getByLabelText('Schedule date')).toHaveValue(DAY)
   })
 
-  it('offers a way back to today from another date', () => {
-    // Act
+  it('loads the schedule for the date picked, so any date is one pick away', async () => {
+    // Arrange
     renderScreen()
 
+    // Act — a date input reports one whole day, not a stream of keystrokes.
+    fireEvent.change(screen.getByLabelText('Schedule date'), {
+      target: { value: '2026-08-09' },
+    })
+
     // Assert
-    expect(screen.getByRole('link', { name: /today/i })).toHaveAttribute('href', '/admin')
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/admin?day=2026-08-09'))
+  })
+
+  it('sends today back to the bare console path, so the landing page stays canonical', async () => {
+    // Arrange — the screen is showing another day; today is picked to get back.
+    renderScreen({ day: '2026-08-09', dayLabel: 'Sun, 09 Aug 2026' })
+
+    // Act
+    fireEvent.change(screen.getByLabelText('Schedule date'), { target: { value: DAY } })
+
+    // Assert
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/admin'))
   })
 })
 
@@ -439,13 +449,13 @@ describe('ScheduleScreen on a phone', () => {
     expect(screen.getByLabelText('Court')).toBeInTheDocument()
   })
 
-  it('shows the day being viewed inside the day navigation, not only in the subtitle', () => {
+  it('keeps the day being viewed in the date picker, not only in the subtitle', () => {
     // Act
     renderScreen()
 
-    // Assert — the header subtitle scrolls away; the nav is what stays.
+    // Assert — the header subtitle scrolls away; the picker is what stays.
     const nav = screen.getByRole('navigation', { name: 'Schedule day' })
-    expect(within(nav).getByText('Tue, 04 Aug 2026')).toBeInTheDocument()
+    expect(within(nav).getByLabelText('Schedule date')).toHaveValue(DAY)
   })
 
   it('says the club is closed rather than listing no courts', () => {

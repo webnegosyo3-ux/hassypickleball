@@ -16,8 +16,10 @@ type SlotGridProps = {
  * The start-time picker.
  *
  * Taken slots are rendered disabled rather than removed, matching the design —
- * seeing that 7pm is gone is information. "Booked" is in the accessible name,
- * so the state is not carried by colour alone.
+ * seeing that 7pm is gone is information. "Booked" and "Blocked" are in the
+ * accessible name, so the state is not carried by colour alone, and the two
+ * are told apart because a slot the club is holding is not a slot a customer
+ * lost.
  */
 export function SlotGrid({
   slots,
@@ -39,11 +41,10 @@ export function SlotGrid({
       {slots.map((slot) => {
         const time = formatTimeInZone(slot.startsAt, timeZone)
         const isSelected = selectedStartsAt?.getTime() === slot.startsAt.getTime()
+        const takenLabel = slot.isPast ? 'past' : slot.isBlocked ? 'blocked' : 'booked'
         const label = slot.isAvailable
           ? `${time}, ${formatMoney(slot.priceCents, currency)}`
-          : slot.isPast
-            ? `${time}, past`
-            : `${time}, booked`
+          : `${time}, ${takenLabel}`
 
         return (
           <li key={slot.startsAt.toISOString()}>
@@ -57,7 +58,13 @@ export function SlotGrid({
             >
               <span className="text-[15px] font-bold">{time}</span>
               <span className="text-[12px] font-medium opacity-80">
-                {slot.isAvailable ? formatMoney(slot.priceCents, currency) : slot.isPast ? 'Past' : 'Booked'}
+                {slot.isAvailable
+                  ? formatMoney(slot.priceCents, currency)
+                  : slot.isPast
+                    ? 'Past'
+                    : slot.isBlocked
+                      ? 'Blocked'
+                      : 'Booked'}
               </span>
             </button>
           </li>

@@ -41,6 +41,7 @@ export default async function AdminSchedulePage({
   return (
     <ScheduleScreen
       day={window.day}
+      today={today.day}
       dayLabel={formatDayInZone(window.from, club.timeZone)}
       club={club}
       courts={courts}

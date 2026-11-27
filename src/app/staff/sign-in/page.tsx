@@ -17,10 +17,10 @@ export default async function StaffSignInPage() {
 
   return (
     <AuthShell>
-      <h1 className="mb-1.5 mt-0 font-[family-name:var(--font-display)] text-[26px] font-bold tracking-[-0.03em]">
+      <h1 className="mb-1.5 mt-0 text-center font-[family-name:var(--font-display)] text-[26px] font-bold tracking-[-0.03em]">
         Staff sign-in
       </h1>
-      <p className="mt-0 mb-6 text-[14px] text-muted">
+      <p className="mt-0 mb-6 text-center text-[14px] text-muted">
         Sign in with your work email to reach the admin console.
       </p>
 

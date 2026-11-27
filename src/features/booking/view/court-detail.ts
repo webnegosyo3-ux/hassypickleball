@@ -1,5 +1,6 @@
 import { formatTimeInZone } from '@/lib/format/time'
 import { formatMoney } from '@/lib/format/money'
+import { shiftDayString } from '@/lib/domain/time'
 import type { AvailabilitySlot } from '@/lib/services/availability'
 
 /**
@@ -14,8 +15,14 @@ import type { AvailabilitySlot } from '@/lib/services/availability'
 const DAY_MS = 24 * 60 * 60 * 1000
 const MINUTES_PER_HOUR = 60
 
+/** The session length the page opens on when no usable length was asked for. */
+export const DEFAULT_DURATION_MINUTES = 60
+
 /** The session lengths the design offers, before the club's own limits apply. */
 const DURATION_CHOICES = [30, 60, 90, 120] as const
+
+/** How many days the strip shows before it pages on to the next week. */
+export const DATE_STRIP_DAYS = 7
 
 export type DateOption = {
   /** Club-local calendar day, "YYYY-MM-DD" — the shape the day param takes. */
@@ -71,12 +78,60 @@ export type DurationOption = {
   readonly isSelected: boolean
 }
 
+/**
+ * The first day the strip should show.
+ *
+ * The strip never offers the past, so a requested start earlier than today is
+ * pulled forward to today. A selected day outside the window would be invisible
+ * — highlighted nowhere and paged off the strip — so the window starts at that
+ * day instead.
+ */
+export function buildStripStart(input: {
+  readonly requested: string
+  readonly today: string
+  readonly day: string
+}): string {
+  const clamped = input.requested < input.today ? input.today : input.requested
+  const last = shiftDayString(clamped, DATE_STRIP_DAYS - 1)
+
+  return input.day < clamped || input.day > last ? input.day : clamped
+}
+
 export type BuildDurationOptionsInput = {
   readonly club: {
     readonly minDurationMinutes: number
     readonly maxDurationMinutes: number
   }
   readonly durationMinutes: number
+}
+
+/**
+ * The session length a raw `?duration=` asks for, clamped to what the club sells.
+ *
+ * The fallback is clamped to the maximum as well as the minimum: a club that
+ * sells one length only (a 30 minute slot, say) would otherwise open on an
+ * hour the server rejects, and the customer would meet an error where the
+ * times should be.
+ */
+export function parseDurationMinutes(input: {
+  readonly raw: string | undefined
+  readonly club: {
+    readonly minDurationMinutes: number
+    readonly maxDurationMinutes: number
+  }
+}): number {
+  const { minDurationMinutes, maxDurationMinutes } = input.club
+  const preferred = Math.max(DEFAULT_DURATION_MINUTES, minDurationMinutes)
+  const fallback = Math.min(preferred, maxDurationMinutes)
+  const parsed = Number(input.raw)
+
+  // Number('') is 0 and Number(' ') is 0, so an absent param must not be read
+  // as a request for a zero minute session.
+  if (input.raw === undefined || input.raw.trim() === '' || !Number.isInteger(parsed)) {
+    return fallback
+  }
+
+  return Math.min(Math.max(parsed, minDurationMinutes), maxDurationMinutes)
 }
 
 /** "30 min", "1 hour", "1.5 hours" — the design's own wording for a length. */
@@ -115,8 +170,12 @@ export function buildDurationOptions(input: BuildDurationOptionsInput): readonly
  * `past` is a slot whose start time has already passed today — unavailable for
  * the same reason as `booked`, but labelled differently so the customer knows
  * the slot expired rather than being taken.
+ *
+ * `blocked` is a slot the club itself is holding — maintenance, a league, a
+ * closure — rather than one another customer booked. The two are equally
+ * unbookable, but they mean different things to whoever is reading the day.
  */
-export type SlotState = 'selected' | 'included' | 'available' | 'booked' | 'past'
+export type SlotState = 'selected' | 'included' | 'available' | 'booked' | 'blocked' | 'past'
 
 export type SlotRow = {
   readonly startsAt: Date
@@ -144,7 +203,7 @@ function stateOf(
   }
 
   if (!slot.isAvailable) {
-    return 'booked'
+    return slot.isBlocked ? 'blocked' : 'booked'
   }
 
   if (selection === null) {
@@ -179,6 +238,8 @@ function labelFor(state: SlotState, isOffPeak: boolean): string {
       return 'Past'
     case 'booked':
       return 'Booked'
+    case 'blocked':
+      return 'Blocked'
     case 'selected':
       return 'Your slot starts here'
     case 'included':

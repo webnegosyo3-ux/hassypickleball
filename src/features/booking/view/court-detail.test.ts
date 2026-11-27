@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { buildDateStrip, buildDurationOptions, buildSlotRows } from './court-detail'
+import {
+  buildDateStrip,
+  buildDurationOptions,
+  buildSlotRows,
+  buildStripStart,
+  parseDurationMinutes,
+} from './court-detail'
 import type { AvailabilitySlot } from '@/lib/services/availability'
 
 const MANILA = 'Asia/Manila'
@@ -49,6 +55,58 @@ describe('buildDateStrip', () => {
   })
 })
 
+describe('buildStripStart', () => {
+  const today = '2026-08-04'
+
+  it('starts the strip at today when nothing was asked for', () => {
+    // Arrange / Act
+    const start = buildStripStart({ requested: today, today, day: today })
+
+    // Assert
+    expect(start).toBe(today)
+  })
+
+  it('pulls a requested start that is already in the past forward to today', () => {
+    // Arrange / Act — booking yesterday is impossible, so it is not offered.
+    const start = buildStripStart({ requested: '2026-07-20', today, day: today })
+
+    // Assert
+    expect(start).toBe(today)
+  })
+
+  it('honours a requested start that is still inside the window', () => {
+    // Arrange / Act
+    const start = buildStripStart({ requested: '2026-08-06', today, day: '2026-08-07' })
+
+    // Assert
+    expect(start).toBe('2026-08-06')
+  })
+
+  it('moves the window onto a selected day that has been paged out of it', () => {
+    // Arrange — a shared link to a day past the end of the default week.
+    const start = buildStripStart({ requested: today, today, day: '2026-09-01' })
+
+    // Assert — the selected day would otherwise be highlighted nowhere.
+    expect(start).toBe('2026-09-01')
+  })
+
+  it('keeps a selected day on the last day of the window visible', () => {
+    // Arrange — the strip runs 4 Aug to 10 Aug, so the 10th still fits.
+    const start = buildStripStart({ requested: today, today, day: '2026-08-10' })
+
+    // Assert
+    expect(start).toBe(today)
+  })
+
+  it('moves the window for a day one past the last one it shows', () => {
+    // Arrange / Act
+    const start = buildStripStart({ requested: today, today, day: '2026-08-11' })
+
+    // Assert
+    expect(start).toBe('2026-08-11')
+  })
+})
+
 describe('buildDurationOptions', () => {
   const club = { minDurationMinutes: 30, maxDurationMinutes: 240 }
 
@@ -93,6 +151,63 @@ describe('buildDurationOptions', () => {
   })
 })
 
+describe('parseDurationMinutes', () => {
+  const club = { minDurationMinutes: 30, maxDurationMinutes: 120 }
+
+  it('opens on the default hour when no length was asked for', () => {
+    // Arrange / Act
+    const minutes = parseDurationMinutes({ raw: undefined, club })
+
+    // Assert
+    expect(minutes).toBe(60)
+  })
+
+  it('keeps a length the club sells', () => {
+    // Arrange / Act
+    const minutes = parseDurationMinutes({ raw: '90', club })
+
+    // Assert
+    expect(minutes).toBe(90)
+  })
+
+  it('clamps a length past what the club sells instead of failing the page', () => {
+    // Arrange / Act — getAvailability rejects the same bounds, so offering it
+    // would leave the customer with an error they cannot act on.
+    const minutes = parseDurationMinutes({ raw: '600', club })
+
+    // Assert
+    expect(minutes).toBe(120)
+  })
+
+  it('pulls a length below the club minimum up to it', () => {
+    // Arrange / Act
+    const minutes = parseDurationMinutes({ raw: '15', club })
+
+    // Assert
+    expect(minutes).toBe(30)
+  })
+
+  it('falls back rather than trusting a length that is not a number', () => {
+    // Arrange / Act
+    const minutes = parseDurationMinutes({ raw: 'an hour', club })
+
+    // Assert
+    expect(minutes).toBe(60)
+  })
+
+  it('opens on the only length a club sells, rather than on the default hour', () => {
+    // Arrange — a club selling a single 30 minute session rejected the default
+    // hour, which is what put an error where the times should have been.
+    const minutes = parseDurationMinutes({
+      raw: undefined,
+      club: { minDurationMinutes: 30, maxDurationMinutes: 30 },
+    })
+
+    // Assert
+    expect(minutes).toBe(30)
+  })
+})
+
 describe('buildSlotRows', () => {
   // 5:00 PM and 5:30 PM Manila on 4 Aug 2026 are 09:00 and 09:30 UTC.
   const at = (utc: string): Date => new Date(`2026-08-04T${utc}:00Z`)
@@ -102,6 +217,7 @@ describe('buildSlotRows', () => {
     endsAt: at(utc),
     priceCents: 60000,
     isAvailable: true,
+    isBlocked: false,
     isPast: false,
     ...overrides,
   })
@@ -140,6 +256,19 @@ describe('buildSlotRows', () => {
     // Assert
     expect(row?.state).toBe('booked')
     expect(row?.label).toBe('Booked')
+    expect(row?.isSelectable).toBe(false)
+  })
+
+  it('names a slot the club is holding as blocked, not booked', () => {
+    // Arrange / Act
+    const [row] = buildSlotRows({
+      ...base,
+      slots: [slot('09:00', { isAvailable: false, isBlocked: true })],
+    })
+
+    // Assert — equally unbookable, but nobody beat the customer to this one.
+    expect(row?.state).toBe('blocked')
+    expect(row?.label).toBe('Blocked')
     expect(row?.isSelectable).toBe(false)
   })
 

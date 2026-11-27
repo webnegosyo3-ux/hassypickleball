@@ -34,12 +34,13 @@ test.describe('storefront chrome', () => {
     )
   })
 
-  test('switching to the compact layout keeps the active filter', async ({ page }) => {
-    await page.goto('/?filter=indoor')
+  test('offers one obvious way to start booking from the header', async ({ page }) => {
+    await page.goto('/')
 
-    await page.getByRole('navigation', { name: 'Catalog layout' }).getByText('Compact').click()
-
-    await expect(page).toHaveURL(/\?filter=indoor&layout=compact$/)
-    await expect(page.getByRole('link', { name: 'Book' }).first()).toBeVisible()
+    // Scoped to the bar: the hero repeats the same call to action below it.
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: 'See availability' }),
+    ).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Catalog layout' })).toHaveCount(0)
   })
 })

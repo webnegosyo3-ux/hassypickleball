@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { COURT_FILTERS, filterCourts, isCourtFilterId, parseCourtFilter } from './court-filters'
+import {
+  buildCatalogHref,
+  COURT_FILTERS,
+  filterCourts,
+  isCourtFilterId,
+  parseCourtFilter,
+} from './court-filters'
 import type { Court } from '@/lib/repositories/mappers'
 
 function court(overrides: Partial<Court> = {}): Court {
@@ -107,5 +113,21 @@ describe('parseCourtFilter', () => {
 
   it('falls back to all for an id that only looks like a filter', () => {
     expect(parseCourtFilter('INDOOR')).toBe('all')
+  })
+})
+
+describe('buildCatalogHref', () => {
+  // One URL for the default view: the canonical catalog is a bare `/`, not two
+  // addresses that render the same page.
+  it('points the default filter at the bare catalog URL', () => {
+    expect(buildCatalogHref('all')).toBe('/')
+  })
+
+  it('carries a non-default filter as a query param', () => {
+    expect(buildCatalogHref('indoor')).toBe('/?filter=indoor')
+  })
+
+  it('round-trips whatever parseCourtFilter accepted', () => {
+    expect(buildCatalogHref(parseCourtFilter('tournament'))).toBe('/?filter=tournament')
   })
 })

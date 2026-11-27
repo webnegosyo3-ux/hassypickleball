@@ -12,6 +12,15 @@ export type TimeRange = {
   readonly endsAt: Date
 }
 
+/**
+ * A taken interval, and what took it. A staff hold and a customer booking are
+ * equally unbookable, but the picker says "Blocked" for one and "Booked" for
+ * the other, so the reason has to survive the round trip.
+ */
+export type BusyRange = TimeRange & {
+  readonly isBlock: boolean
+}
+
 export type PricingRule = {
   readonly id: string
   readonly label: string

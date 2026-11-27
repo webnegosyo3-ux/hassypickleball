@@ -3,9 +3,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRef, useState } from 'react'
-import { useCart } from '@/features/cart/cart-provider'
-import { CART_DRAWER_ID, CartDrawer } from '@/features/cart/ui/cart-drawer'
 
 const ADMIN_ROOT = '/admin'
 const STAFF_ROOT = '/staff'
@@ -20,23 +17,11 @@ function isAdminRoute(pathname: string) {
 /**
  * Site chrome for the storefront.
  *
- * A Client Component because the cart count lives in the client-side cart
- * store. The cart is the button that opens the drawer, and the drawer's open
- * state lives here because the same component owns both halves of the pair.
+ * A Client Component only because it has to know whether the console is on
+ * screen — the console keeps its own header.
  */
 export function SiteHeader() {
   const pathname = usePathname()
-  const { summary } = useCart()
-  const count = summary.courtCount + summary.itemCount
-  const [isCartOpen, setIsCartOpen] = useState(false)
-  const cartRef = useRef<HTMLButtonElement>(null)
-
-  function closeCart() {
-    setIsCartOpen(false)
-    // The drawer took focus on open; dropping it on the body would restart
-    // keyboard navigation at the top of the page.
-    cartRef.current?.focus()
-  }
 
   // Placed after the hooks so the hook order stays stable across navigation
   // between the storefront and the console.
@@ -61,37 +46,25 @@ export function SiteHeader() {
             priority
             className="size-11 flex-none rounded-full bg-white"
           />
-          <span className="font-[family-name:var(--font-display)] text-[18px] font-bold tracking-[-0.02em]">
+          {/* The mark carries the brand on a phone: the wordmark would crowd
+              the availability control off a 320px bar. */}
+          <span className="hidden font-[family-name:var(--font-display)] text-[18px] font-bold tracking-[-0.02em] sm:inline">
             Hassy Pickleball
           </span>
         </Link>
 
-        <button
-          ref={cartRef}
-          type="button"
-          aria-expanded={isCartOpen}
-          aria-controls={CART_DRAWER_ID}
-          onClick={() => setIsCartOpen((wasOpen) => !wasOpen)}
-          className="ml-auto flex flex-none items-center gap-2 rounded-[10px] border border-white/20 px-3 py-[7px] text-[13.5px] font-semibold text-white/85 hover:border-white/40 hover:text-white sm:px-3.5"
+        {/* The one thing a visitor came to do, reachable from every page: see
+            what is open before filling anything in. The short label is for the
+            narrowest phones, where the full one would crowd the bar. */}
+        <Link
+          href="/availability"
+          aria-label="See availability"
+          className="ml-auto flex-none rounded-[10px] bg-lime px-3 py-2 text-[13px] font-bold text-navy transition hover:bg-white hover:text-navy sm:px-3.5 sm:text-[13.5px]"
         >
-          Booking{' '}
-          {count === 0 ? (
-            // "empty" is the only droppable word in the bar; on the narrowest
-            // phones the badge's absence already says the same thing.
-            <span className="hidden text-white/60 sm:inline">empty</span>
-          ) : (
-            <>
-              <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-lime px-1.5 text-[12px] font-bold text-navy">
-                {count}
-              </span>{' '}
-              {/* The badge is the visible count; the noun is announced only. */}
-              <span className="sr-only">{count === 1 ? 'item' : 'items'}</span>
-            </>
-          )}
-        </button>
+          <span className="sm:hidden">Availability</span>
+          <span className="hidden sm:inline">See availability</span>
+        </Link>
       </div>
-
-      <CartDrawer isOpen={isCartOpen} onClose={closeCart} />
     </header>
   )
 }

@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { cache } from 'react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Enums } from '@/lib/repositories/rows'
 
@@ -35,8 +36,13 @@ const NOT_STAFF: StaffAccess = { status: 'not-staff' }
  *
  * A failed lookup is reported as not-staff rather than thrown: RLS is the real
  * boundary, so the safe reading of "we could not confirm this" is no access.
+ *
+ * Cached per request: the console layout asks for access to decide whether to
+ * render, and every page under it asks again for the staff record. Without the
+ * cache that is a second getUser() round trip to the auth server plus a second
+ * staff query on every navigation — paid before any page data is even read.
  */
-export async function getStaffAccess(): Promise<StaffAccess> {
+export const getStaffAccess = cache(async (): Promise<StaffAccess> => {
   const client = await createSupabaseServerClient()
 
   const {
@@ -68,7 +74,7 @@ export async function getStaffAccess(): Promise<StaffAccess> {
       fullName: data.full_name,
     },
   }
-}
+})
 
 /**
  * The signed-in user's staff record, or null, for callers that only need to

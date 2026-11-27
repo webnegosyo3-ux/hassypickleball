@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { readPublicEnv, readServerEnv } from './env'
+import { readPublicEnv, readServerEnv, hasServerSecret } from './env'
 
 const ORIGINAL_ENV = process.env
 
@@ -63,6 +63,36 @@ describe('readServerEnv', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY
 
     expect(() => readServerEnv()).toThrow(/SUPABASE_SERVICE_ROLE_KEY/)
+  })
+})
+
+/**
+ * Callers that can report a missing key calmly — the court page says start
+ * times are unavailable — ask this first, so the schema error never reaches a
+ * customer with a stack attached.
+ */
+describe('hasServerSecret', () => {
+  it('is true once a service-role key is set', () => {
+    expect(hasServerSecret()).toBe(true)
+  })
+
+  it('is false when neither key name is set', () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    expect(hasServerSecret()).toBe(false)
+  })
+
+  it('is false when the value is blank, which is how a half-filled .env looks', () => {
+    process.env.SUPABASE_SERVICE_ROLE_KEY = ''
+
+    expect(hasServerSecret()).toBe(false)
+  })
+
+  it('accepts the new-style secret key name', () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_SECRET_KEY = 'sb_secret_abc'
+
+    expect(hasServerSecret()).toBe(true)
   })
 })
 

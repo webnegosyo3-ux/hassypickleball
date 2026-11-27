@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation'
 import { countOpenSlots } from '@/features/booking/server/open-slots'
 import { loadCatalog } from '@/features/courts/catalog'
 import { parseCourtFilter } from '@/features/courts/court-filters'
-import { parseCourtLayout } from '@/features/courts/court-layout'
 import { CourtsBrowse } from '@/features/courts/courts-browse'
 import { toDayStringInZone } from '@/lib/format/time'
 
@@ -10,7 +9,7 @@ import { toDayStringInZone } from '@/lib/format/time'
 const CLUB_SLUG = 'baseline'
 
 type HomePageProps = {
-  searchParams: Promise<{ filter?: string; layout?: string }>
+  searchParams: Promise<{ filter?: string }>
 }
 
 /**
@@ -20,11 +19,11 @@ type HomePageProps = {
  * public rows for every visitor — while today's open-slot counts are read
  * fresh, because a stale availability count sells a slot that is already gone.
  *
- * Both search params are normalised here rather than passed through raw: each
- * one is echoed back into every link on the page.
+ * The filter is normalised here rather than passed through raw: it is echoed
+ * back into every link on the page.
  */
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const { filter, layout } = await searchParams
+  const { filter } = await searchParams
 
   const catalog = await loadCatalog(CLUB_SLUG)
 
@@ -45,7 +44,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       club={club}
       courts={courts}
       filter={parseCourtFilter(filter)}
-      layout={parseCourtLayout(layout)}
       openSlotsByCourt={openSlotsByCourt}
     />
   )

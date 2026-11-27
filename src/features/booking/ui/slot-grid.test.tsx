@@ -12,6 +12,7 @@ function slot(overrides: Partial<AvailabilitySlot> = {}): AvailabilitySlot {
     endsAt: new Date('2026-03-15T23:00:00Z'),
     priceCents: 60000,
     isAvailable: true,
+    isBlocked: false,
     isPast: false,
     ...overrides,
   }
@@ -93,6 +94,20 @@ describe('SlotGrid', () => {
     )
 
     expect(screen.getByRole('button', { name: /booked/i })).toBeInTheDocument()
+  })
+
+  it('tells a slot the club is holding apart from one a customer booked', () => {
+    render(
+      <SlotGrid
+        slots={[slot({ isAvailable: false, isBlocked: true })]}
+        timeZone={MANILA}
+        currency="PHP"
+        onSelect={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /blocked/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /booked/i })).not.toBeInTheDocument()
   })
 
   it('tells the customer when the day is fully booked instead of rendering nothing', () => {

@@ -1,12 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const findBusyRangesByCourt = vi.fn()
+const findBusyRangesByCourtPublic = vi.fn()
 const listActiveCourts = vi.fn()
 const listActivePricingRules = vi.fn()
 const findClubById = vi.fn()
 
+/** Whether this process holds the service-role key. Flipped per test. */
+const env = vi.hoisted(() => ({ hasServerSecret: true }))
+
+vi.mock('@/lib/env', () => ({ hasServerSecret: () => env.hasServerSecret }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({}) }))
-vi.mock('@/lib/repositories/availability', () => ({ findBusyRangesByCourt }))
+vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({}) }))
+vi.mock('@/lib/repositories/availability', () => ({
+  findBusyRangesByCourt,
+  findBusyRangesByCourtPublic,
+}))
 vi.mock('@/lib/repositories/courts', () => ({ listActiveCourts }))
 vi.mock('@/lib/repositories/pricing-rules', () => ({ listActivePricingRules }))
 vi.mock('@/lib/repositories/clubs', () => ({ findClubById }))
@@ -36,7 +45,9 @@ const COURT_IDS = ['court-1', 'court-2']
 
 beforeEach(() => {
   vi.clearAllMocks()
+  env.hasServerSecret = true
   findBusyRangesByCourt.mockResolvedValue({})
+  findBusyRangesByCourtPublic.mockResolvedValue({})
 })
 
 describe('countOpenSlots', () => {
@@ -113,5 +124,30 @@ describe('countOpenSlots', () => {
     // Manila is UTC+8, so the club day starts at 16:00 UTC the day before.
     expect(range.from.toISOString()).toBe('2026-02-28T16:00:00.000Z')
     expect(range.to.toISOString()).toBe('2026-03-01T16:00:00.000Z')
+  })
+
+  // The storefront runs without a service-role key, and the catalog used to
+  // lose its counts there because this read asked for one regardless.
+  describe('without the service-role key', () => {
+    beforeEach(() => {
+      env.hasServerSecret = false
+    })
+
+    it('counts from the public busy intervals instead of dropping the numbers', async () => {
+      findBusyRangesByCourtPublic.mockResolvedValue({
+        'court-1': [
+          {
+            startsAt: new Date('2026-02-28T22:00:00Z'),
+            endsAt: new Date('2026-02-28T23:00:00Z'),
+          },
+        ],
+      })
+
+      const counts = await countOpenSlots({ club: CLUB, courtIds: COURT_IDS, day: '2026-03-01' })
+
+      expect(counts?.['court-1']).toBe(STARTS_IN_DAY - 1)
+      expect(counts?.['court-2']).toBe(STARTS_IN_DAY)
+      expect(findBusyRangesByCourt).not.toHaveBeenCalled()
+    })
   })
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import type { CheckoutPaymentMethod } from '../view/checkout-view'
+import type { CheckoutPaymentMethod } from '../view/payment-method'
 
 /**
  * How the guest says they will pay, and where to send it.

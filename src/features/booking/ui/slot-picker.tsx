@@ -17,6 +17,7 @@ const TIMELINE_TONE: Record<SlotState, string> = {
   included: 'bg-lime-soft text-ink',
   available: 'bg-surface text-ink hover:bg-canvas',
   booked: 'bg-surface-sunken text-subtle',
+  blocked: 'bg-surface-sunken text-subtle',
   past: 'bg-surface-sunken text-subtle opacity-50',
 }
 
@@ -25,6 +26,7 @@ const CHIP_TONE: Record<SlotState, string> = {
   included: 'border-lime-deep bg-lime-soft text-ink',
   available: 'border-line-heavy bg-surface text-ink hover:border-ink',
   booked: 'border-line bg-surface-sunken text-subtle',
+  blocked: 'border-line border-dashed bg-surface-sunken text-subtle',
   past: 'border-line bg-surface-sunken text-subtle opacity-50',
 }
 
@@ -57,7 +59,9 @@ export function SlotPicker({ rows, slotStyle, onSelect }: SlotPickerProps) {
           >
             <span className="block text-[14px] font-bold tabular-nums">{row.time}</span>
             <span className="mt-0.5 block text-[11.5px] opacity-72">
-              {row.state === 'booked' || row.state === 'past' ? row.label : row.price}
+              {row.state === 'booked' || row.state === 'blocked' || row.state === 'past'
+                ? row.label
+                : row.price}
             </span>
           </button>
         ))}
@@ -91,6 +95,7 @@ export function SlotLegend() {
     { label: 'Selected', className: 'bg-lime border-lime-deep' },
     { label: 'Available', className: 'bg-surface border-line-heavy' },
     { label: 'Booked', className: 'bg-canvas border-line' },
+    { label: 'Blocked', className: 'bg-surface-sunken border-dashed border-line' },
   ]
 
   return (

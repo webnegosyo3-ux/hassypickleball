@@ -1,7 +1,7 @@
 import { findOpenStartTimes, mergeBusyRanges } from '@/lib/domain/availability'
 import { quoteCourtSegment } from '@/lib/domain/pricing'
-import { addMinutes, enumerateStartTimes } from '@/lib/domain/time'
-import type { CustomerTier, PricingRule, TimeRange } from '@/lib/domain/types'
+import { addMinutes, enumerateStartTimes, rangesOverlap } from '@/lib/domain/time'
+import type { BusyRange, CustomerTier, PricingRule } from '@/lib/domain/types'
 import type { Club } from '@/lib/repositories/mappers'
 
 export type AvailabilityCourt = {
@@ -15,6 +15,13 @@ export type AvailabilitySlot = {
   readonly endsAt: Date
   readonly priceCents: number
   readonly isAvailable: boolean
+  /**
+   * True when a staff hold — maintenance, a league, a closure — is what makes
+   * the slot unavailable, as opposed to somebody else's booking. A slot a
+   * booking also covers is reported as booked: that is the reason the customer
+   * would have met first.
+   */
+  readonly isBlocked: boolean
   /**
    * True when the slot's start time has already passed. Set only when the
    * caller passes `now` to `buildCourtAvailability`; always false otherwise.
@@ -34,7 +41,7 @@ export type BuildCourtAvailabilityInput = {
   readonly club: Club
   readonly courts: readonly AvailabilityCourt[]
   /** Bookings and maintenance blocks, already grouped by court id. */
-  readonly busyByCourt: Readonly<Record<string, readonly TimeRange[]>>
+  readonly busyByCourt: Readonly<Record<string, readonly BusyRange[]>>
   /** Club-local calendar day, "YYYY-MM-DD". */
   readonly day: string
   readonly durationMinutes: number
@@ -72,7 +79,9 @@ export function buildCourtAvailability(
   })
 
   return input.courts.map((court) => {
-    const busy = mergeBusyRanges(input.busyByCourt[court.id] ?? [])
+    const ranges = input.busyByCourt[court.id] ?? []
+    const busy = mergeBusyRanges(ranges)
+    const blocks = ranges.filter((range) => range.isBlock)
     const openStarts = new Set(
       findOpenStartTimes({
         candidates,
@@ -86,11 +95,18 @@ export function buildCourtAvailability(
     )
 
     const slots = candidates.map((startsAt) => {
+      const endsAt = addMinutes(startsAt, input.durationMinutes)
+      const span = { startsAt, endsAt }
       const inPast = input.now !== undefined && startsAt <= input.now
+      const isAvailable = openStarts.has(startsAt.getTime()) && !inPast
+      const isBooking =
+        !isAvailable &&
+        !inPast &&
+        ranges.some((range) => !range.isBlock && rangesOverlap(range, span))
 
       return {
         startsAt,
-        endsAt: addMinutes(startsAt, input.durationMinutes),
+        endsAt,
         priceCents: quoteCourtSegment({
           basePriceCents: court.basePriceCents,
           courtId: court.id,
@@ -100,7 +116,8 @@ export function buildCourtAvailability(
           tier: input.tier,
           rules: courtRules,
         }).totalCents,
-        isAvailable: openStarts.has(startsAt.getTime()) && !inPast,
+        isAvailable,
+        isBlocked: !isBooking && !inPast && blocks.some((block) => rangesOverlap(block, span)),
         isPast: inPast,
       }
     })

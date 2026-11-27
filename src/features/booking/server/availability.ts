@@ -3,14 +3,20 @@ import 'server-only'
 import { err, ok, type Result } from '@/lib/api/result'
 import { availabilityQuerySchema } from '@/lib/api/schemas'
 import { zonedTimeToUtc } from '@/lib/domain/time'
-import { buildCourtAvailability, type CourtAvailability } from '@/lib/services/availability'
-import { findBusyRangesByCourt } from '@/lib/repositories/availability'
+import {
+  buildCourtAvailability,
+  type AvailabilitySlot,
+  type CourtAvailability,
+} from '@/lib/services/availability'
+import { findBusyRangesByCourt, findBusyRangesByCourtPublic } from '@/lib/repositories/availability'
 import { findClubById } from '@/lib/repositories/clubs'
 import { listActiveCourts } from '@/lib/repositories/courts'
 import { findCustomerByEmail } from '@/lib/repositories/customers'
 import { listActivePricingRules } from '@/lib/repositories/pricing-rules'
-import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { availabilityAccess } from './access'
+import type { Client } from '@/lib/repositories/support'
 import type { CustomerTier } from '@/lib/domain/types'
+import type { Club, Court } from '@/lib/repositories/mappers'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -30,9 +36,12 @@ export async function getAvailability(input: unknown): Promise<Result<CourtAvail
   }
 
   const query = parsed.data
-  const client = createSupabaseAdminClient()
 
   try {
+    // Inside the try on purpose: a misconfigured client throws here, and an
+    // uncaught throw inside a suspended server component leaves the page on its
+    // skeleton forever instead of saying what went wrong.
+    const { client, privileged } = await availabilityAccess()
     const club = await findClubById(client, query.clubId)
 
     if (!club) {
@@ -52,7 +61,7 @@ export async function getAvailability(input: unknown): Promise<Result<CourtAvail
     const [courts, rules, tier] = await Promise.all([
       listActiveCourts(client, query.clubId),
       listActivePricingRules(client, query.clubId),
-      resolveTier(client, query.clubId, query.email),
+      resolveTier({ client, privileged }, query.clubId, query.email),
     ])
 
     const visible = query.courtId ? courts.filter((court) => court.id === query.courtId) : courts
@@ -62,11 +71,13 @@ export async function getAvailability(input: unknown): Promise<Result<CourtAvail
     const from = zonedTimeToUtc(query.day, 0, club.timeZone)
     const to = new Date(from.getTime() + DAY_MS)
 
-    const busyByCourt = await findBusyRangesByCourt(client, {
-      courtIds: visible.map((court) => court.id),
-      from,
-      to,
-    })
+    const busyByCourt = privileged
+      ? await findBusyRangesByCourt(client, {
+          courtIds: visible.map((court) => court.id),
+          from,
+          to,
+        })
+      : await findBusyRangesByCourtPublic(client, { clubId: club.id, from, to })
 
     // Pass the current instant only for today so that slots whose start time
     // has already passed are shown as unavailable rather than falsely open.
@@ -92,23 +103,101 @@ export async function getAvailability(input: unknown): Promise<Result<CourtAvail
       }),
     ])
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unexpected error'
+    // A warning, and the message only: a stack in the browser console reads as
+    // a crash, and whoever fixed this only needs the sentence. The detail here
+    // names infrastructure the customer cannot act on, so it stays in the log.
+    console.warn('Availability read failed:', describeError(error))
 
-    return err(message, 'UNEXPECTED')
+    return err('Times could not be loaded right now. Please try again.', 'UNEXPECTED')
   }
 }
 
 /** Tier pricing only applies to a customer we can actually identify. */
 async function resolveTier(
-  client: ReturnType<typeof createSupabaseAdminClient>,
+  access: { readonly client: Client; readonly privileged: boolean },
   clubId: string,
   email: string | undefined,
 ): Promise<CustomerTier> {
-  if (!email) {
+  if (!email || !access.privileged) {
     return 'standard'
   }
 
-  const customer = await findCustomerByEmail(client, clubId, email)
+  const customer = await findCustomerByEmail(access.client, clubId, email)
 
   return customer?.tier ?? 'standard'
+}
+
+export type CourtDayAvailabilityInput = {
+  readonly club: Club
+  readonly court: Court
+  /** Club-local calendar day, "YYYY-MM-DD". */
+  readonly day: string
+  readonly durationMinutes: number
+}
+
+/**
+ * One court's day of start times, for the court detail page.
+ *
+ * The page already holds the club and the court from the cached catalog, so
+ * this skips the club lookup, the court list, and the tier lookup that
+ * getAvailability pays for — the page has no email to price against. What is
+ * left — the pricing rules, and the bookings and blocks for that one court —
+ * is read in one parallel wave instead of two.
+ *
+ * Availability is never cached: a stale open flag sells the same slot twice.
+ */
+export async function getCourtDayAvailability(
+  input: CourtDayAvailabilityInput,
+): Promise<Result<AvailabilitySlot[]>> {
+  const { club, court, day, durationMinutes } = input
+
+  if (durationMinutes < club.minDurationMinutes || durationMinutes > club.maxDurationMinutes) {
+    return err(
+      `Sessions run from ${club.minDurationMinutes} to ${club.maxDurationMinutes} minutes`,
+      'INVALID',
+    )
+  }
+
+  try {
+    const { client, privileged } = await availabilityAccess()
+
+    // The busy window is the club-local calendar day, not a UTC day — in
+    // Asia/Manila those differ by eight hours.
+    const from = zonedTimeToUtc(day, 0, club.timeZone)
+    const to = new Date(from.getTime() + DAY_MS)
+
+    const [rules, busyByCourt] = await Promise.all([
+      listActivePricingRules(client, club.id),
+      privileged
+        ? findBusyRangesByCourt(client, { courtIds: [court.id], from, to })
+        : findBusyRangesByCourtPublic(client, { clubId: club.id, from, to }),
+    ])
+
+    // Past start times only matter for today; for a future day every slot is
+    // decided by the bookings and blocks alone.
+    const now = new Date()
+    const isToday = day === now.toLocaleDateString('en-CA', { timeZone: club.timeZone })
+
+    const [availability] = buildCourtAvailability({
+      club,
+      courts: [{ id: court.id, name: court.name, basePriceCents: court.basePriceCents }],
+      busyByCourt,
+      day,
+      durationMinutes,
+      rules,
+      tier: 'standard',
+      now: isToday ? now : undefined,
+    })
+
+    return ok([...availability.slots])
+  } catch (error: unknown) {
+    console.warn('Court day availability read failed:', describeError(error))
+
+    return err('Times could not be loaded right now. Please try again.', 'UNEXPECTED')
+  }
+}
+
+/** The sentence, not the stack: these failures are configuration, not code. */
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }

@@ -2,8 +2,8 @@ import 'server-only'
 
 import { findOpenStartTimes, mergeBusyRanges } from '@/lib/domain/availability'
 import { enumerateStartTimes, zonedTimeToUtc } from '@/lib/domain/time'
-import { findBusyRangesByCourt } from '@/lib/repositories/availability'
-import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { findBusyRangesByCourt, findBusyRangesByCourtPublic } from '@/lib/repositories/availability'
+import { availabilityAccess } from './access'
 import type { Club } from '@/lib/repositories/mappers'
 
 /**
@@ -14,9 +14,10 @@ import type { Club } from '@/lib/repositories/mappers'
  * court list, and the pricing rules the catalog page already holds — work the
  * storefront would otherwise pay for on every render to display one number.
  *
- * Reads with the service-role client for the same reason getAvailability does:
- * availability must reflect every booking, including the ones RLS hides from
- * anon. Nothing customer-identifying leaves this function — only counts.
+ * Reads what is taken the same way the rest of the storefront does: the tables
+ * when a service-role key is configured, `court_day_busy` when it is not. The
+ * count has to reflect every booking, including the ones RLS hides from anon,
+ * and nothing customer-identifying leaves this function — only numbers.
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -55,11 +56,11 @@ export async function countOpenSlots({
     const from = zonedTimeToUtc(day, 0, club.timeZone)
     const to = new Date(from.getTime() + DAY_MS)
 
-    const busyByCourt = await findBusyRangesByCourt(createSupabaseAdminClient(), {
-      courtIds: [...courtIds],
-      from,
-      to,
-    })
+    const { client, privileged } = await availabilityAccess()
+
+    const busyByCourt = privileged
+      ? await findBusyRangesByCourt(client, { courtIds: [...courtIds], from, to })
+      : await findBusyRangesByCourtPublic(client, { clubId: club.id, from, to })
 
     const candidates = enumerateStartTimes({
       day,

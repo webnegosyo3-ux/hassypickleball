@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AdminPageHeader, AdminScreen, CARD, EmptyState, StatCards } from './primitives'
 import { BlockTimeForm } from './block-time-form'
@@ -9,7 +8,6 @@ import { ScheduleAgenda } from './schedule-agenda'
 import { SCHEDULE_TONE_STYLES } from './schedule-tones'
 import { useIsDesktop } from './desktop-viewport'
 import { buildScheduleAgenda, SCHEDULE_TONE_LABELS } from '../view/schedule-agenda'
-import { shiftDayString } from '@/lib/domain/time'
 import type { ScheduleGrid, ScheduleTone } from '../view/schedule'
 import type { StatCard } from '../view/schedule-stats'
 import type { AvailabilityBlock } from '@/lib/repositories/booking-mappers'
@@ -31,10 +29,11 @@ import type { Result } from '@/lib/api/result'
  * time range, the grid names each tone in a legend beneath it, and the list,
  * which scrolls away from any legend, names the tone on each entry.
  *
- * The day is navigated with links rather than client state: the schedule is
- * server-rendered per day, so ?day= is what actually loads another day's
- * bookings, and a staff member can bookmark or share the date they are looking
- * at. Today is the bare /admin, so the console's landing page stays canonical.
+ * The day is chosen with a date input rather than stepped to with arrows: any
+ * date is one pick away, and the schedule is server-rendered per day, so ?day=
+ * is what actually loads another day's bookings. A staff member can still
+ * bookmark or share the date they are looking at, and today stays the bare
+ * /admin, so the console's landing page remains canonical.
  */
 
 const ROW_HEIGHT_PX = 58
@@ -44,6 +43,8 @@ const LEGEND: readonly ScheduleTone[] = ['confirmed', 'awaiting', 'blocked', 'ev
 export interface ScheduleScreenProps {
   /** Club-local calendar day being viewed, "YYYY-MM-DD". */
   readonly day: string
+  /** Club-local today, "YYYY-MM-DD" — the day the bare /admin shows. */
+  readonly today: string
   readonly dayLabel: string
   readonly club: Club
   readonly courts: readonly Court[]
@@ -55,6 +56,7 @@ export interface ScheduleScreenProps {
 
 export function ScheduleScreen({
   day,
+  today,
   dayLabel,
   club,
   courts,
@@ -96,9 +98,9 @@ export function ScheduleScreen({
             : 'Bookings and blocked time across every court'
         }
       >
-        {/* The date rides in the nav on a phone, where the subtitle above it is
-            the first thing to scroll away. */}
-        <DayNav day={day} dayLabel={isDesktop ? null : dayLabel} />
+        {/* The picker carries the date on a phone, where the subtitle above it
+            is the first thing to scroll away. */}
+        <DayNav day={day} today={today} />
       </AdminPageHeader>
 
       <StatCards stats={stats} />
@@ -295,39 +297,58 @@ function BlockTimeSection({ day, club, courts, isDesktop, onBlock }: BlockTimeSe
   )
 }
 
-const DAY_LINK =
-  'inline-flex h-11 items-center justify-center rounded-xl border border-line-strong bg-surface ' +
-  'px-3.5 text-[13.5px] font-semibold text-ink hover:border-line-heavy sm:h-10 sm:text-[13px]'
+const DAY_INPUT =
+  'h-11 w-full rounded-xl border border-line-strong bg-surface px-3 text-[13.5px] font-semibold ' +
+  'tabular-nums text-ink focus-visible:outline-2 focus-visible:outline-offset-1 ' +
+  'focus-visible:outline-navy-mid sm:h-10 sm:w-auto sm:text-[13px]'
 
-/** Previous day, today, next day — the only three moves the desk ever makes. */
-function DayNav({ day, dayLabel }: { readonly day: string; readonly dayLabel: string | null }) {
+/**
+ * The day being viewed, as the date input the desk already knows how to use.
+ * Picking a date loads that day's schedule; picking today drops the ?day= param
+ * so the console's landing page stays canonical.
+ *
+ * The field holds the picked date itself rather than the loaded one, for the
+ * seconds the server takes: a controlled-by-props input would snap back to the
+ * previous day the instant the desk picked a new one, which reads as a dropped
+ * tap. The loaded day overrides it as soon as it arrives, and the busy style
+ * plus the announced line say plainly that the console is working.
+ */
+function DayNav({ day, today }: { readonly day: string; readonly today: string }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [picked, setPicked] = useState(day)
+  const [loaded, setLoaded] = useState(day)
+
+  if (day !== loaded) {
+    setLoaded(day)
+    setPicked(day)
+  }
+
   return (
-    <nav aria-label="Schedule day" className="flex items-center gap-2">
-      <Link
-        href={`/admin?day=${shiftDayString(day, -1)}`}
-        aria-label="Previous day"
-        className={`${DAY_LINK} max-sm:w-11 max-sm:flex-none`}
-      >
-        ‹
-      </Link>
+    <nav aria-label="Schedule day" aria-busy={isPending} className="flex items-center gap-2">
+      <input
+        type="date"
+        aria-label="Schedule date"
+        value={picked}
+        onChange={(event) => {
+          const next = event.target.value
 
-      {dayLabel ? (
-        <span className="min-w-0 flex-1 truncate text-center text-[14px] font-bold">
-          {dayLabel}
-        </span>
-      ) : null}
+          if (!next) {
+            return
+          }
 
-      <Link
-        href={`/admin?day=${shiftDayString(day, 1)}`}
-        aria-label="Next day"
-        className={`${DAY_LINK} max-sm:w-11 max-sm:flex-none`}
-      >
-        ›
-      </Link>
+          setPicked(next)
+          startTransition(() => {
+            router.push(next === today ? '/admin' : `/admin?day=${next}`)
+          })
+        }}
+        className={`${DAY_INPUT} ${isPending ? 'opacity-60' : ''}`}
+      />
 
-      <Link href="/admin" className={`${DAY_LINK} max-sm:flex-none`}>
-        Today
-      </Link>
+      {/* Announced rather than only shown: a slow day is not a silent one. */}
+      <span role="status" aria-live="polite" className="text-[12.5px] font-medium text-muted">
+        {isPending ? 'Loading…' : ''}
+      </span>
     </nav>
   )
 }

@@ -1,5 +1,3 @@
-import Image from 'next/image'
-import Link from 'next/link'
 import { formatMoney } from '@/lib/format/money'
 import type { Club, Court } from '@/lib/repositories/mappers'
 
@@ -50,11 +48,11 @@ type StatProps = {
 
 function Stat({ value, label }: StatProps) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 text-center">
       <dt className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-white/60 sm:text-[11.5px]">
         {label}
       </dt>
-      <dd className="mt-1 font-[family-name:var(--font-display)] text-[16px] font-bold leading-none tracking-[-0.02em] text-white sm:text-[26px]">
+      <dd className="mt-1 whitespace-nowrap font-[family-name:var(--font-display)] text-[16px] font-bold leading-none tracking-[-0.02em] text-white sm:text-[26px]">
         {value}
       </dd>
     </div>
@@ -62,9 +60,12 @@ function Stat({ value, label }: StatProps) {
 }
 
 /**
- * The storefront's front door. Built from the Hassy logo's own palette: the
- * near-black navy of its outline, the royal blue of its court, and the optic
- * yellow of the ball.
+ * The storefront's front door, in the Hassy palette: the near-black navy of the
+ * club's outline, the royal blue of its court, and the optic yellow of the ball.
+ *
+ * The logo itself belongs to the header, where it sits on every page — repeating
+ * it here made the hero a second copy of the same mark. What is left is the
+ * headline, the numbers, and the court drawn in line art behind them.
  *
  * The headline is a paragraph, not a heading, because the catalog below owns
  * the page's single <h1>.
@@ -74,7 +75,7 @@ export function StorefrontHero({ club, courts }: StorefrontHeroProps) {
 
   return (
     <section aria-label="Welcome" className="relative isolate overflow-hidden bg-navy text-white">
-      {/* Royal-blue court glow behind the logo, and a lime flare for the ball. */}
+      {/* Royal-blue court glow behind the copy, and a lime flare for the ball. */}
       <div
         aria-hidden
         className="absolute inset-0 -z-10 bg-[radial-gradient(60%_90%_at_85%_40%,#1746c9_0%,transparent_70%),radial-gradient(40%_50%_at_8%_100%,rgba(217,228,58,0.16)_0%,transparent_70%),linear-gradient(135deg,#0a1230_0%,#0f2766_100%)]"
@@ -83,8 +84,8 @@ export function StorefrontHero({ club, courts }: StorefrontHeroProps) {
         <CourtLines />
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1280px] items-center gap-7 px-4 md:gap-10 pb-12 pt-8 sm:px-7 sm:pt-12 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:pb-20 md:pt-16">
-        <div className="order-2 min-w-0 text-center md:order-1 md:text-left">
+      <div className="mx-auto w-full max-w-[1280px] px-4 pb-12 pt-8 sm:px-7 sm:pt-12 md:pb-20 md:pt-16">
+        <div className="mx-auto min-w-0 max-w-[760px] text-center">
           <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-[12px] font-bold uppercase tracking-[0.14em] text-lime">
             <span aria-hidden className="size-2 rounded-full bg-lime" />
             Now booking<span className="hidden sm:inline"> · {club.name}</span>
@@ -96,27 +97,20 @@ export function StorefrontHero({ club, courts }: StorefrontHeroProps) {
             <span className="text-lime">Let’s begin.</span>
           </p>
 
-          <p className="mx-auto mt-5 max-w-[48ch] text-pretty text-[16px] md:mx-0 md:text-[17px] leading-relaxed text-white/80">
+          <p className="mx-auto mt-5 max-w-[48ch] text-pretty text-[16px] leading-relaxed text-white/80 md:text-[17px]">
             Reserve a court in under a minute. Pick your hour, bring your crew, and add paddles or
             café items at checkout — all in one booking.
           </p>
 
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3 md:justify-start">
-            <Link
-              href="#courts"
-              className="rounded-xl bg-lime px-6 py-3.5 text-[15px] font-bold text-navy shadow-[0_10px_30px_-8px_rgba(217,228,58,0.55)] transition hover:-translate-y-0.5 hover:bg-white hover:text-navy"
-            >
-              Book a court
-            </Link>
-            <Link
-              href="#courts"
-              className="rounded-xl border border-white/30 px-5 py-3.5 text-[15px] font-semibold text-white transition hover:border-white hover:bg-white/10 hover:text-white"
-            >
-              See availability
-            </Link>
-          </div>
+          {/* No call to action here: the header carries "See availability" on
+              every page, and repeating it 300px below just asked the visitor to
+              pick between two buttons that scroll to the same place. */}
 
-          <dl className="mt-8 grid grid-cols-[auto_1fr_auto] gap-x-5 border-t border-white/15 pt-5 text-left sm:flex sm:flex-wrap sm:gap-x-10 sm:gap-y-5 md:mt-10 md:pt-6">
+          {/* Three columns, labels above values and centred. The middle track
+              is sized to the opening hours so "6:00 AM – 11:59 PM" stays on one
+              line — wrapping it left that value on a different baseline from
+              the two beside it. The max-width stops them drifting apart wide. */}
+          <dl className="mt-8 grid grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-5 border-t border-white/15 pt-5 text-center sm:mx-auto sm:max-w-[520px] md:mt-10 md:pt-6">
             <Stat value={String(courts.length)} label="Courts" />
             <Stat
               value={`${toClockLabel(club.opensAt)} – ${toClockLabel(club.closesAt)}`}
@@ -126,19 +120,6 @@ export function StorefrontHero({ club, courts }: StorefrontHeroProps) {
               <Stat value={formatMoney(cheapest, club.currency)} label="From / hour" />
             )}
           </dl>
-        </div>
-
-        <div className="relative order-1 mx-auto w-[min(58vw,230px)] md:order-2 md:w-full md:max-w-none">
-          <div aria-hidden className="absolute inset-[-8%] rounded-full bg-[#1746c9]/40 blur-3xl" />
-          <Image
-            src="/logo.jpg"
-            alt="Hassy Pickleball Court — Rally. Dink. Let’s begin."
-            width={520}
-            height={520}
-            priority
-            sizes="(max-width: 768px) 230px, 440px"
-            className="relative mx-auto size-auto w-full max-w-[440px] rounded-full border-[6px] border-white/90 bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] md:rotate-3"
-          />
         </div>
       </div>
 

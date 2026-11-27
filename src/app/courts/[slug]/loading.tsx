@@ -1,9 +1,12 @@
 import { LoadingScreen, Skeleton } from '@/components/ui/skeleton'
 
 /**
- * The court detail page waits on the court record and its availability grid.
- * The grid is the slow half, so the boundary covers the whole page rather than
- * letting the header paint against an empty body.
+ * Shown while the route itself resolves — a first visit, or a hard navigation.
+ *
+ * The booking grid no longer waits here: the page streams its court details
+ * immediately and suspends only the availability half, so this boundary is
+ * brief. It still matches the page's own shape rather than a spinner, because
+ * a spinner for a page that is about to look like this reads as a stall.
  */
 export default function Loading() {
   return (

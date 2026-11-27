@@ -4,13 +4,22 @@ const findClubById = vi.fn()
 const listActiveCourts = vi.fn()
 const listActivePricingRules = vi.fn()
 const findBusyRangesByCourt = vi.fn()
+const findBusyRangesByCourtPublic = vi.fn()
 const findCustomerByEmail = vi.fn()
 
+/** Whether this process holds the service-role key. Flipped per test. */
+const env = vi.hoisted(() => ({ hasServerSecret: true }))
+
+vi.mock('@/lib/env', () => ({ hasServerSecret: () => env.hasServerSecret }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({}) }))
+vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({}) }))
 vi.mock('@/lib/repositories/clubs', () => ({ findClubById }))
 vi.mock('@/lib/repositories/courts', () => ({ listActiveCourts }))
 vi.mock('@/lib/repositories/pricing-rules', () => ({ listActivePricingRules }))
-vi.mock('@/lib/repositories/availability', () => ({ findBusyRangesByCourt }))
+vi.mock('@/lib/repositories/availability', () => ({
+  findBusyRangesByCourt,
+  findBusyRangesByCourtPublic,
+}))
 vi.mock('@/lib/repositories/customers', () => ({ findCustomerByEmail }))
 
 const { getAvailability } = await import('./availability')
@@ -54,10 +63,12 @@ const VALID = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  env.hasServerSecret = true
   findClubById.mockResolvedValue(CLUB)
   listActiveCourts.mockResolvedValue([COURT])
   listActivePricingRules.mockResolvedValue([])
   findBusyRangesByCourt.mockResolvedValue({})
+  findBusyRangesByCourtPublic.mockResolvedValue({})
   findCustomerByEmail.mockResolvedValue(null)
 })
 
@@ -111,6 +122,7 @@ describe('getAvailability', () => {
         {
           startsAt: new Date('2026-02-28T22:00:00.000Z'),
           endsAt: new Date('2026-02-28T23:00:00.000Z'),
+          isBlock: false,
         },
       ],
     })
@@ -123,6 +135,28 @@ describe('getAvailability', () => {
     )
 
     expect(blocked?.isAvailable).toBe(false)
+    expect(blocked?.isBlocked).toBe(false)
+  })
+
+  it('reports a slot the club is holding as blocked rather than booked', async () => {
+    findBusyRangesByCourt.mockResolvedValue({
+      'court-1': [
+        {
+          startsAt: new Date('2026-02-28T22:00:00.000Z'),
+          endsAt: new Date('2026-02-28T23:00:00.000Z'),
+          isBlock: true,
+        },
+      ],
+    })
+
+    const result = await getAvailability(VALID)
+    if (!result.success) throw new Error('expected success')
+
+    const blocked = result.data[0]?.slots.find(
+      (slot) => slot.startsAt.toISOString() === '2026-02-28T22:00:00.000Z',
+    )
+
+    expect(blocked?.isBlocked).toBe(true)
   })
 
   it('prices at the customer’s tier when an email identifies a known member', async () => {
@@ -149,5 +183,30 @@ describe('getAvailability', () => {
     const result = await getAvailability(VALID)
 
     expect(result).toMatchObject({ success: false, code: 'UNEXPECTED' })
+  })
+})
+
+describe('getAvailability without the service-role key', () => {
+  it('reads the public busy intervals instead, and still prices the day', async () => {
+    env.hasServerSecret = false
+
+    const result = await getAvailability(VALID)
+
+    expect(result.success).toBe(true)
+    expect(findBusyRangesByCourtPublic).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ clubId: CLUB.id }),
+    )
+    expect(findBusyRangesByCourt).not.toHaveBeenCalled()
+  })
+
+  it('prices at the standard tier rather than guessing a member tier', async () => {
+    env.hasServerSecret = false
+
+    await getAvailability({ ...VALID, email: 'ana@example.com' })
+
+    // A member's tier lives behind RLS; without the key the lookup is skipped
+    // instead of quietly pricing the customer as somebody they may not be.
+    expect(findCustomerByEmail).not.toHaveBeenCalled()
   })
 })

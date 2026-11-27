@@ -8,7 +8,7 @@ import { expect, test, type Page } from '@playwright/test'
  * computed geometry at a phone viewport.
  */
 
-const COURT_PATH = '/courts/court-1'
+const COURT_PATH = '/courts/court-01'
 
 /** The smallest comfortable touch target, per WCAG 2.2 target size (minimum). */
 const MIN_TAP_TARGET_PX = 44
@@ -81,8 +81,8 @@ test.describe('court detail on a phone', () => {
     await page.goto(COURT_PATH)
 
     const controls = [
-      page.getByRole('navigation', { name: 'Booking day' }).getByRole('link').first(),
-      page.getByRole('navigation', { name: 'Session length' }).getByRole('link').first(),
+      page.getByRole('group', { name: 'Booking day' }).getByRole('button').first(),
+      page.getByRole('group', { name: 'Session length' }).getByRole('button').first(),
     ]
 
     for (const control of controls) {
@@ -93,10 +93,10 @@ test.describe('court detail on a phone', () => {
     }
   })
 
-  test('the add-to-cart button is comfortably tappable', async ({ page }) => {
+  test('the confirm button is comfortably tappable before a time is picked', async ({ page }) => {
     await page.goto(COURT_PATH)
 
-    const button = page.getByRole('button', { name: /select a start time|add to cart/i })
+    const button = page.getByRole('button', { name: /pick a date and time|confirm booking/i })
     const box = await button.boundingBox()
 
     expect(box).not.toBeNull()

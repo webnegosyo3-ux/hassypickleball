@@ -49,6 +49,17 @@ const secretKey = (): string | undefined =>
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
 
 /**
+ * Whether a service-role secret is configured, without throwing.
+ *
+ * Read before readServerEnv() by callers that can report "no key yet" calmly —
+ * the court page tells the customer times are unavailable — so that a missing
+ * value never reaches anyone as a schema error with a stack attached.
+ */
+export function hasServerSecret(): boolean {
+  return (secretKey() ?? '').trim().length > 0
+}
+
+/**
  * Values inlined into the client bundle. Referenced via literal
  * `process.env.X` so the Next.js compiler can statically replace them.
  */

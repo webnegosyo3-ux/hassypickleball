@@ -20,9 +20,9 @@ const SEGMENTS = [
     label: /court/i,
   },
   {
-    name: 'checkout',
-    load: () => import('./checkout/loading'),
-    label: /checkout/i,
+    name: 'availability',
+    load: () => import('./availability/loading'),
+    label: /availability/i,
   },
   {
     name: 'admin console',

@@ -48,12 +48,13 @@ function court(overrides: Partial<Court> = {}): Court {
 }
 
 describe('CourtsBrowse', () => {
-  it('headlines the catalog with the court count and the club opening hours', () => {
+  it('heads the catalog with a single instruction rather than the opening hours', () => {
     render(<CourtsBrowse club={club()} courts={[court(), court({ id: 'c2', slug: 'c2' })]} />)
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      '2 courts. Open 07:00 to 22:00.',
-    )
+    const heading = screen.getByRole('heading', { level: 1 })
+
+    expect(heading).toHaveTextContent('Book a court')
+    expect(heading).not.toHaveTextContent(/courts\. Open/i)
   })
 
   it('links filter chips at the storefront root so the catalog has one canonical URL', () => {
@@ -99,63 +100,23 @@ describe('CourtsBrowse', () => {
     expect(within(card as HTMLElement).getByText(/\$900/)).toBeInTheDocument()
   })
 
-  it('offers a gallery and a compact view of the same catalog', () => {
+  it('offers one view of the catalog, with no layout switch to choose from', () => {
     render(<CourtsBrowse club={club()} courts={[court()]} />)
 
-    const toggle = screen.getByRole('navigation', { name: 'Catalog layout' })
-
-    expect(within(toggle).getByRole('link', { name: 'Gallery' })).toHaveAttribute('href', '/')
-    expect(within(toggle).getByRole('link', { name: 'Compact' })).toHaveAttribute(
-      'href',
-      '/?layout=compact',
-    )
+    expect(screen.queryByRole('navigation', { name: 'Catalog layout' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /view & book/i })).toBeInTheDocument()
   })
 
-  it('marks the active layout as the current page for assistive tech', () => {
-    render(<CourtsBrowse club={club()} courts={[court()]} layout="compact" />)
-
-    const toggle = screen.getByRole('navigation', { name: 'Catalog layout' })
-
-    expect(within(toggle).getByRole('link', { name: 'Compact' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-    expect(within(toggle).getByRole('link', { name: 'Gallery' })).not.toHaveAttribute(
-      'aria-current',
-    )
-  })
-
-  it('keeps the active filter when switching layout', () => {
+  it('keeps the active filter on its chip and nothing else in the URL', () => {
     render(<CourtsBrowse club={club()} courts={[court()]} filter="indoor" />)
-
-    const toggle = screen.getByRole('navigation', { name: 'Catalog layout' })
-
-    expect(within(toggle).getByRole('link', { name: 'Compact' })).toHaveAttribute(
-      'href',
-      '/?filter=indoor&layout=compact',
-    )
-  })
-
-  it('keeps the active layout when switching filter', () => {
-    render(<CourtsBrowse club={club()} courts={[court()]} layout="compact" />)
 
     const filters = screen.getByRole('navigation', { name: 'Filter courts' })
 
     expect(within(filters).getByRole('link', { name: 'Indoor' })).toHaveAttribute(
       'href',
-      '/?filter=indoor&layout=compact',
+      '/?filter=indoor',
     )
-    expect(within(filters).getByRole('link', { name: 'All courts' })).toHaveAttribute(
-      'href',
-      '/?layout=compact',
-    )
-  })
-
-  it('renders the compact row rather than the gallery card in the compact layout', () => {
-    render(<CourtsBrowse club={club()} courts={[court()]} layout="compact" />)
-
-    expect(screen.getByRole('link', { name: 'Book' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /view & book/i })).not.toBeInTheDocument()
+    expect(within(filters).getByRole('link', { name: 'All courts' })).toHaveAttribute('href', '/')
   })
 
   it('shows each court its own open-slot count', () => {

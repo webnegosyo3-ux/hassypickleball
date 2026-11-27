@@ -50,6 +50,7 @@ describe('buildCourtAvailability', () => {
           {
             startsAt: new Date('2026-03-15T23:00:00Z'), // 07:00 Manila
             endsAt: new Date('2026-03-16T00:00:00Z'),
+            isBlock: false,
           },
         ],
       },
@@ -63,6 +64,31 @@ describe('buildCourtAvailability', () => {
 
     expect(unavailable).toHaveLength(1)
     expect(unavailable[0].startsAt.toISOString()).toBe('2026-03-15T23:00:00.000Z')
+    expect(unavailable[0].isBlocked).toBe(false)
+  })
+
+  it('marks a slot a staff hold took as blocked rather than booked', () => {
+    const [availability] = buildCourtAvailability({
+      club,
+      courts: [court],
+      busyByCourt: {
+        'court-1': [
+          {
+            startsAt: new Date('2026-03-15T23:00:00Z'), // 07:00 Manila
+            endsAt: new Date('2026-03-16T00:00:00Z'),
+            isBlock: true,
+          },
+        ],
+      },
+      day: '2026-03-16',
+      durationMinutes: 60,
+      rules: [],
+      tier: 'standard',
+    })
+
+    const [blocked] = availability.slots.filter((slot) => slot.isBlocked)
+
+    expect(blocked?.startsAt.toISOString()).toBe('2026-03-15T23:00:00.000Z')
   })
 
   it('prices every slot, including unavailable ones, so the UI can show a rate', () => {
@@ -133,6 +159,7 @@ describe('buildCourtAvailability', () => {
           {
             startsAt: new Date('2026-03-15T00:00:00Z'),
             endsAt: new Date('2026-03-17T00:00:00Z'),
+            isBlock: false,
           },
         ],
       },

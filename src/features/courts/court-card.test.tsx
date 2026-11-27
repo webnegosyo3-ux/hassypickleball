@@ -95,10 +95,28 @@ describe('CourtCard', () => {
     expect(screen.getByAltText('Court 1 — Center')).toBeInTheDocument()
   })
 
-  it('renders a placeholder instead of a broken image when there is no photo', () => {
-    render(<CourtCard court={court({ heroImageUrl: null })} />)
+  it('prefers the photo the club uploaded', () => {
+    render(<CourtCard court={court({ heroImageUrl: 'https://example.com/c1.jpg' })} />)
 
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    // next/image rewrites the src to /_next/image?url=…, so compare the
+    // decoded URL rather than the optimiser's wrapper.
+    const src = decodeURIComponent(
+      screen.getByAltText('Court 1 — Center').getAttribute('src') ?? '',
+    )
+
+    expect(src).toContain('https://example.com/c1.jpg')
+  })
+
+  it('falls back to a bundled photo when the club has not uploaded one', () => {
+    render(<CourtCard court={court({ slug: 'court-03', heroImageUrl: null })} />)
+
+    expect(screen.getByAltText('Court 1 — Center').getAttribute('src')).toContain('court-03.jpg')
+  })
+
+  it('still shows a photo for a court the bundle has no picture for', () => {
+    render(<CourtCard court={court({ slug: 'court-07', heroImageUrl: null })} />)
+
+    expect(screen.getByRole('img')).toBeInTheDocument()
   })
 
   it('qualifies the rate as per hour so the price is not read as the session total', () => {
@@ -136,52 +154,5 @@ describe('CourtCard', () => {
 
     expect(screen.queryByText(/slots open today/)).not.toBeInTheDocument()
     expect(screen.queryByText('Fully booked today')).not.toBeInTheDocument()
-  })
-})
-
-describe('CourtCard, compact layout', () => {
-  it('still names the court as a heading', () => {
-    render(<CourtCard court={court()} layout="compact" />)
-
-    expect(screen.getByRole('heading', { name: 'Court 1 — Center' })).toBeInTheDocument()
-  })
-
-  it('shortens the call to action to fit the row', () => {
-    render(<CourtCard court={court()} layout="compact" />)
-
-    expect(screen.getByRole('link', { name: 'Book' })).toHaveAttribute('href', '/courts/court-1')
-  })
-
-  it('drops the blurb — the compact row trades prose for density', () => {
-    render(<CourtCard court={court()} layout="compact" />)
-
-    expect(screen.queryByText('Our show court.')).not.toBeInTheDocument()
-  })
-
-  it('keeps the rate and the environment visible', () => {
-    render(<CourtCard court={court({ environment: 'outdoor' })} layout="compact" />)
-
-    expect(screen.getByText(/₱900/)).toBeInTheDocument()
-    expect(screen.getByText(/outdoor/i)).toBeInTheDocument()
-  })
-
-  it('reports open slots the same way the gallery card does', () => {
-    render(<CourtCard court={court()} layout="compact" openSlotCount={3} />)
-
-    expect(screen.getByText('3 slots open today')).toBeInTheDocument()
-  })
-
-  it('marks a tournament-grade court here too — density must not hide the grade', () => {
-    render(<CourtCard court={court({ isTournamentGrade: true })} layout="compact" />)
-
-    expect(screen.getByText(/tournament grade/i)).toBeInTheDocument()
-  })
-
-  it('gives the thumbnail alt text naming the court', () => {
-    render(
-      <CourtCard court={court({ heroImageUrl: 'https://example.com/c1.jpg' })} layout="compact" />,
-    )
-
-    expect(screen.getByAltText('Court 1 — Center')).toBeInTheDocument()
   })
 })
