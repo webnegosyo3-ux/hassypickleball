@@ -116,14 +116,34 @@ describe('countOpenSlots', () => {
     expect(listActivePricingRules).not.toHaveBeenCalled()
   })
 
-  it('asks only for the club-local day, not a UTC one', async () => {
+  it('asks for the club-local day through to closing time, not a UTC day', async () => {
     await countOpenSlots({ club: CLUB, courtIds: COURT_IDS, day: '2026-03-01' })
 
     const [, range] = findBusyRangesByCourt.mock.calls[0]
 
-    // Manila is UTC+8, so the club day starts at 16:00 UTC the day before.
+    // Manila is UTC+8, so the club day starts at 16:00 UTC the day before and
+    // closes at 10:00 its own time.
     expect(range.from.toISOString()).toBe('2026-02-28T16:00:00.000Z')
-    expect(range.to.toISOString()).toBe('2026-03-01T16:00:00.000Z')
+    expect(range.to.toISOString()).toBe('2026-03-01T02:00:00.000Z')
+  })
+
+  // A 12:00 AM start only exists because the club day runs past midnight; the
+  // count has to include it or the catalog under-reports the day.
+  it('counts the 12:00 AM start of a club that closes at 01:00', async () => {
+    const lateClub = { ...CLUB, closesAt: '01:00:00' }
+
+    const counts = await countOpenSlots({
+      club: lateClub,
+      courtIds: COURT_IDS,
+      day: '2026-03-01',
+    })
+
+    // 06:00 through 12:00 AM at 60-minute steps, plus the 01:00 close itself is
+    // not a start: nineteen one-hour starts.
+    expect(counts?.['court-1']).toBe(19)
+
+    const [, range] = findBusyRangesByCourt.mock.calls[0]
+    expect(range.to.toISOString()).toBe('2026-03-01T17:00:00.000Z')
   })
 
   // The storefront runs without a service-role key, and the catalog used to

@@ -106,14 +106,27 @@ describe('getAvailability', () => {
     expect(result.data[0]?.slots[0]?.priceCents).toBe(60000)
   })
 
-  it('asks for busy ranges over the whole club-local day, not a UTC day', async () => {
+  it('asks for busy ranges from local midnight to the club’s closing time', async () => {
     await getAvailability(VALID)
 
     const [, window] = findBusyRangesByCourt.mock.calls[0] ?? []
 
-    // Manila is UTC+8, so the local day starts at 16:00 UTC the day before.
+    // Manila is UTC+8, so the local day starts at 16:00 UTC the day before and
+    // this club closes at 22:00 its own time.
     expect((window as { from: Date }).from.toISOString()).toBe('2026-02-28T16:00:00.000Z')
-    expect((window as { to: Date }).to.toISOString()).toBe('2026-03-01T16:00:00.000Z')
+    expect((window as { to: Date }).to.toISOString()).toBe('2026-03-01T14:00:00.000Z')
+  })
+
+  it('reads past midnight when the club closes after it', async () => {
+    // Arrange — a club that stays open until 01:00 sells a 12:00 AM start.
+    findClubById.mockResolvedValue({ ...CLUB, closesAt: '01:00:00' })
+
+    // Act
+    await getAvailability(VALID)
+
+    // Assert — the window runs to 01:00 the next morning, not to midnight.
+    const [, window] = findBusyRangesByCourt.mock.calls[0] ?? []
+    expect((window as { to: Date }).to.toISOString()).toBe('2026-03-01T17:00:00.000Z')
   })
 
   it('marks a slot unavailable when a booking covers it', async () => {

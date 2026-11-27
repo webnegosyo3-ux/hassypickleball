@@ -137,7 +137,7 @@ export function SettingsScreen({ club, canEdit, onSave }: SettingsScreenProps) {
         <Field
           id={`${prefix}-closesAt`}
           label="Closes at"
-          hint="For midnight closing (12:00 AM), pick 00:00 — the last 11:00 PM slot then fits. Note: 12:00 is noon."
+          hint="Times at or before opening mean the next morning: 01:00 keeps the courts open past midnight and sells a 12:00 AM start. Note: 12:00 is noon."
         >
           <input {...field('closesAt')} type="time" required className={FIELD} />
         </Field>

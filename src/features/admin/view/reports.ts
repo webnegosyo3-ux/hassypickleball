@@ -51,11 +51,13 @@ type LocalSegment = {
 }
 
 function localSegments(input: ReportInput): readonly LocalSegment[] {
+  const window = openingWindow(input.club)
+
   return input.bookings.filter(isLive).flatMap((detail) =>
     detail.segments.map((segment) => ({
       courtId: segment.courtId,
       priceCents: segment.priceCents,
-      ...toLocalInterval(segment.startsAt, segment.endsAt, input.club.timeZone),
+      ...toLocalInterval(segment.startsAt, segment.endsAt, input.club.timeZone, window),
     })),
   )
 }

@@ -1,19 +1,26 @@
-import { getZonedParts, MINUTES_PER_DAY, MINUTES_PER_HOUR, parseClockTime } from '@/lib/domain/time'
+import {
+  getZonedParts,
+  MINUTES_PER_DAY,
+  MINUTES_PER_HOUR,
+  openWindowMinutes,
+} from '@/lib/domain/time'
 import type { BookingDetail } from '@/lib/repositories/bookings'
 import type { Club } from '@/lib/repositories/mappers'
 
 /** Helpers every admin projection needs. Kept here so none of them drift apart. */
 
+const HOURS_PER_DAY = 24
+
 export type OpeningWindow = {
   /** Minutes since club-local midnight. */
   readonly opensAt: number
+  /** Past 1440 when the club plays past midnight. */
   readonly closesAt: number
   readonly totalMinutes: number
 }
 
 export function openingWindow(club: Club): OpeningWindow {
-  const opensAt = parseClockTime(club.opensAt)
-  const closesAt = parseClockTime(club.closesAt)
+  const { opensAt, closesAt } = openWindowMinutes(club.opensAt, club.closesAt)
 
   return { opensAt, closesAt, totalMinutes: closesAt - opensAt }
 }
@@ -26,18 +33,24 @@ export function isLive(detail: BookingDetail): boolean {
 /**
  * An interval expressed in club-local minutes since midnight.
  *
- * An interval that ends at or before it starts has crossed midnight; it is
- * carried to the end of the day rather than folded back to a negative length.
+ * A club that plays past midnight has a tail: a reading inside that tail (12:30
+ * AM, minute 30) is carried onto the end of the day as minute 1470, so a 12:00
+ * AM session lands beside the 11:00 PM one instead of at the far left. Pass the
+ * window whenever one is in hand — without it, midnight reads as the start of
+ * the day.
  */
 export function toLocalInterval(
   startsAt: Date,
   endsAt: Date,
   timeZone: string,
+  window?: OpeningWindow,
 ): { readonly from: number; readonly to: number } {
-  const from = getZonedParts(startsAt, timeZone).minutesOfDay
-  const rawTo = getZonedParts(endsAt, timeZone).minutesOfDay
+  const rawFrom = getZonedParts(startsAt, timeZone).minutesOfDay
+  const tailEnd = window === undefined ? 0 : Math.max(0, window.closesAt - MINUTES_PER_DAY)
+  const from = rawFrom < tailEnd ? rawFrom + MINUTES_PER_DAY : rawFrom
+  const minutes = (endsAt.getTime() - startsAt.getTime()) / 60_000
 
-  return { from, to: rawTo > from ? rawTo : MINUTES_PER_DAY }
+  return { from, to: from + minutes }
 }
 
 /** Minutes shared by two half-open intervals; never negative. */
@@ -70,18 +83,20 @@ export function coveredMinutes(
   ).total
 }
 
-/** "7:00 AM" for the schedule's time gutter. */
+/** "7:00 AM" for the schedule's time gutter. Hour 24 is the 12 AM tail. */
 export function formatHourLabel(hour: number): string {
-  const suffix = hour < 12 ? 'AM' : 'PM'
-  const hour12 = hour % 12 === 0 ? 12 : hour % 12
+  const hourOfDay = hour % HOURS_PER_DAY
+  const suffix = hourOfDay < 12 ? 'AM' : 'PM'
+  const hour12 = hourOfDay % 12 === 0 ? 12 : hourOfDay % 12
 
   return `${hour12}:00 ${suffix}`
 }
 
 /** "7am" — the compact form the reports chart uses under each bar. */
 export function formatShortHourLabel(hour: number): string {
-  const suffix = hour < 12 ? 'am' : 'pm'
-  const hour12 = hour % 12 === 0 ? 12 : hour % 12
+  const hourOfDay = hour % HOURS_PER_DAY
+  const suffix = hourOfDay < 12 ? 'am' : 'pm'
+  const hour12 = hourOfDay % 12 === 0 ? 12 : hourOfDay % 12
 
   return `${hour12}${suffix}`
 }

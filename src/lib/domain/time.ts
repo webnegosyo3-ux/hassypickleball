@@ -159,6 +159,33 @@ function zoneOffsetMs(date: Date, timeZone: string): number {
   return asUtc - date.getTime()
 }
 
+export type OpenWindowMinutes = {
+  /** Minutes since midnight. */
+  readonly opensAt: number
+  /**
+   * Minutes since midnight of the opening day. Past 1440 when the club closes
+   * after midnight: 06:00 until 01:00 is 1500, a nineteen hour day.
+   */
+  readonly closesAt: number
+}
+
+/**
+ * A club's opening window in minutes, with the close carried past midnight when
+ * it runs over — a close at or before the opening time (06:00 to 01:00) means
+ * the next day, not a negative day.
+ *
+ * Everything that has to agree on how long a club day is — the slot grid, the
+ * busy window reads, the admin schedule and the reports — goes through this, so
+ * a late-closing club cannot be read one way in one place and another way in
+ * the next.
+ */
+export function openWindowMinutes(opensAt: string, closesAt: string): OpenWindowMinutes {
+  const opens = parseClockTime(opensAt)
+  const closes = parseClockTime(closesAt)
+
+  return { opensAt: opens, closesAt: closes > opens ? closes : closes + MINUTES_PER_DAY }
+}
+
 export type EnumerateStartTimesInput = {
   /** Club-local calendar day, "YYYY-MM-DD". */
   readonly day: string
@@ -172,6 +199,9 @@ export type EnumerateStartTimesInput = {
 /**
  * Every club-local start time on `day` at which a session of `durationMinutes`
  * still finishes by closing time. Returned as UTC instants.
+ *
+ * A club that closes after midnight (say 01:00) yields starts past 24:00, which
+ * land on the following calendar day — the 12:00 AM row of that day's grid.
  */
 export function enumerateStartTimes(input: EnumerateStartTimesInput): Date[] {
   if (input.slotMinutes <= 0) {
@@ -182,8 +212,7 @@ export function enumerateStartTimes(input: EnumerateStartTimesInput): Date[] {
     throw new Error('durationMinutes must be greater than 0')
   }
 
-  const opensAt = parseClockTime(input.opensAt)
-  const closesAt = parseClockTime(input.closesAt)
+  const { opensAt, closesAt } = openWindowMinutes(input.opensAt, input.closesAt)
   const lastStart = closesAt - input.durationMinutes
 
   const starts: Date[] = []

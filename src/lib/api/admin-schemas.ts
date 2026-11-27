@@ -319,17 +319,14 @@ export const clubSettingsSchema = z
     ...club,
     closesAt: club.closesAt.startsWith('00:00') ? '24:00' : club.closesAt,
   }))
-  .refine(
-    (club) => {
-      const opens = parseClockTime(club.opensAt)
-      const closes = parseClockTime(club.closesAt)
-      return closes > opens
-    },
-    {
-      message: 'Closing time must be after opening time',
-      path: ['closesAt'],
-    },
-  )
+  // A closing time at or before the opening time is the next morning: the club
+  // plays past midnight, so 06:00 until 01:00 is allowed and sells a 12:00 AM
+  // start. Identical times are rejected — that would be a day the desk never
+  // means to sell.
+  .refine((club) => parseClockTime(club.closesAt) !== parseClockTime(club.opensAt), {
+    message: 'Closing time cannot be the same as opening time',
+    path: ['closesAt'],
+  })
   .refine((club) => club.maxDurationMinutes >= club.minDurationMinutes, {
     message: 'Longest booking cannot be shorter than the shortest',
     path: ['maxDurationMinutes'],

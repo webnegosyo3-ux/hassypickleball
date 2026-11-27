@@ -2,7 +2,7 @@ import 'server-only'
 
 import { err, ok, type Result } from '@/lib/api/result'
 import { availabilityQuerySchema } from '@/lib/api/schemas'
-import { zonedTimeToUtc } from '@/lib/domain/time'
+import { openWindowMinutes, zonedTimeToUtc } from '@/lib/domain/time'
 import {
   buildCourtAvailability,
   type AvailabilitySlot,
@@ -18,7 +18,22 @@ import type { Client } from '@/lib/repositories/support'
 import type { CustomerTier } from '@/lib/domain/types'
 import type { Club, Court } from '@/lib/repositories/mappers'
 
-const DAY_MS = 24 * 60 * 60 * 1000
+/**
+ * The window a day's bookings are read over: the club-local calendar day, run
+ * on to closing time.
+ *
+ * A club that closes at 01:00 sells a 12:00 AM start, and that session lives on
+ * the next calendar day — reading only to midnight would report the slot free
+ * while somebody already holds it.
+ */
+function busyWindow(day: string, club: Club): { readonly from: Date; readonly to: Date } {
+  const { closesAt } = openWindowMinutes(club.opensAt, club.closesAt)
+
+  return {
+    from: zonedTimeToUtc(day, 0, club.timeZone),
+    to: zonedTimeToUtc(day, closesAt, club.timeZone),
+  }
+}
 
 /**
  * The slot grid behind the court picker.
@@ -66,10 +81,7 @@ export async function getAvailability(input: unknown): Promise<Result<CourtAvail
 
     const visible = query.courtId ? courts.filter((court) => court.id === query.courtId) : courts
 
-    // The busy window is the club-local calendar day, not a UTC day — in
-    // Asia/Manila those differ by eight hours.
-    const from = zonedTimeToUtc(query.day, 0, club.timeZone)
-    const to = new Date(from.getTime() + DAY_MS)
+    const { from, to } = busyWindow(query.day, club)
 
     const busyByCourt = privileged
       ? await findBusyRangesByCourt(client, {
@@ -161,10 +173,7 @@ export async function getCourtDayAvailability(
   try {
     const { client, privileged } = await availabilityAccess()
 
-    // The busy window is the club-local calendar day, not a UTC day — in
-    // Asia/Manila those differ by eight hours.
-    const from = zonedTimeToUtc(day, 0, club.timeZone)
-    const to = new Date(from.getTime() + DAY_MS)
+    const { from, to } = busyWindow(day, club)
 
     const [rules, busyByCourt] = await Promise.all([
       listActivePricingRules(client, club.id),

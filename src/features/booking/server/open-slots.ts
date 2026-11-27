@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { findOpenStartTimes, mergeBusyRanges } from '@/lib/domain/availability'
-import { enumerateStartTimes, zonedTimeToUtc } from '@/lib/domain/time'
+import { enumerateStartTimes, openWindowMinutes, zonedTimeToUtc } from '@/lib/domain/time'
 import { findBusyRangesByCourt, findBusyRangesByCourtPublic } from '@/lib/repositories/availability'
 import { availabilityAccess } from './access'
 import type { Club } from '@/lib/repositories/mappers'
@@ -19,8 +19,6 @@ import type { Club } from '@/lib/repositories/mappers'
  * count has to reflect every booking, including the ones RLS hides from anon,
  * and nothing customer-identifying leaves this function — only numbers.
  */
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 export type CountOpenSlotsInput = {
   readonly club: Club
@@ -52,9 +50,14 @@ export async function countOpenSlots({
 
   try {
     // The busy window is the club-local calendar day, not a UTC day — in
-    // Asia/Manila those differ by eight hours.
+    // Asia/Manila those differ by eight hours — and it runs on to closing time,
+    // which is past midnight for a club that closes at 01:00.
     const from = zonedTimeToUtc(day, 0, club.timeZone)
-    const to = new Date(from.getTime() + DAY_MS)
+    const to = zonedTimeToUtc(
+      day,
+      openWindowMinutes(club.opensAt, club.closesAt).closesAt,
+      club.timeZone,
+    )
 
     const { client, privileged } = await availabilityAccess()
 

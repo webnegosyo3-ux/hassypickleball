@@ -147,7 +147,7 @@ function bookingEntries(
     detail.segments
       .filter((segment) => segment.courtId === courtId)
       .flatMap((segment) => {
-        const { from, to } = toLocalInterval(segment.startsAt, segment.endsAt, timeZone)
+        const { from, to } = toLocalInterval(segment.startsAt, segment.endsAt, timeZone, window)
         const placed = place(from, to, window)
 
         if (!placed) {
@@ -179,7 +179,7 @@ function blockEntries(courtId: string, input: ScheduleGridInput, window: Opening
   return input.blocks
     .filter((block) => block.courtId === courtId)
     .flatMap((block) => {
-      const { from, to } = toLocalInterval(block.startsAt, block.endsAt, timeZone)
+      const { from, to } = toLocalInterval(block.startsAt, block.endsAt, timeZone, window)
       const placed = place(from, to, window)
 
       if (!placed) {

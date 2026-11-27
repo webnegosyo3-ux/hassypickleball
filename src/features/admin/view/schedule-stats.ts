@@ -63,12 +63,12 @@ function occupiedMinutes(input: ScheduleStatsInput, window: OpeningWindow): numb
 
   for (const detail of input.bookings.filter(isLive)) {
     for (const segment of detail.segments) {
-      add(segment.courtId, toLocalInterval(segment.startsAt, segment.endsAt, timeZone))
+      add(segment.courtId, toLocalInterval(segment.startsAt, segment.endsAt, timeZone, window))
     }
   }
 
   for (const block of input.blocks) {
-    add(block.courtId, toLocalInterval(block.startsAt, block.endsAt, timeZone))
+    add(block.courtId, toLocalInterval(block.startsAt, block.endsAt, timeZone, window))
   }
 
   return [...spansByCourt.values()].reduce((total, spans) => total + coveredMinutes(spans), 0)

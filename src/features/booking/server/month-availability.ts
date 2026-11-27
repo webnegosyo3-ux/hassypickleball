@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { ok, type Result } from '@/lib/api/result'
-import { zonedTimeToUtc } from '@/lib/domain/time'
+import { MINUTES_PER_DAY, openWindowMinutes, zonedTimeToUtc } from '@/lib/domain/time'
 import { findBusyRangesByCourt, findBusyRangesByCourtPublic } from '@/lib/repositories/availability'
 import { listActivePricingRules } from '@/lib/repositories/pricing-rules'
 import { buildCourtAvailability } from '@/lib/services/availability'
@@ -40,8 +40,10 @@ export async function getMonthOpenSlots(input: {
     const { client, privileged } = await availabilityAccess()
 
     const from = zonedTimeToUtc(grid.firstDay, 0, club.timeZone)
-    // The whole month in one window: the last day's midnight, plus a day.
-    const to = new Date(from.getTime() + 32 * 24 * 60 * 60 * 1000)
+    // The whole month in one window: the last day's midnight, plus a day, plus
+    // whatever the club keeps playing past midnight.
+    const { closesAt } = openWindowMinutes(club.opensAt, club.closesAt)
+    const to = new Date(from.getTime() + (32 * MINUTES_PER_DAY + closesAt) * 60 * 1000)
 
     const [rules, busyByCourt] = await Promise.all([
       listActivePricingRules(client, club.id),

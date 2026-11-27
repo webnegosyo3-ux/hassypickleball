@@ -2,7 +2,7 @@ import 'server-only'
 
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
-import { zonedTimeToUtc } from '@/lib/domain/time'
+import { MINUTES_PER_DAY, openWindowMinutes, zonedTimeToUtc } from '@/lib/domain/time'
 import { toDayStringInZone } from '@/lib/format/time'
 import { getStaffAccess, type StaffMember } from '@/lib/auth/staff'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -48,14 +48,20 @@ export type DayWindow = {
   readonly days: number
 }
 
-const MINUTES_PER_DAY = 1440
-
-/** A named club-local day, as a UTC half-open interval. */
+/**
+ * A named club-local day, as a UTC half-open interval.
+ *
+ * The window runs on to the club's closing time, which is past midnight for a
+ * club that closes at 01:00 — the 12:00 AM sessions belong to this day, and a
+ * window that stopped at midnight would hide them from the schedule.
+ */
 export function dayWindow(club: Club, day: string): DayWindow {
+  const { closesAt } = openWindowMinutes(club.opensAt, club.closesAt)
+
   return {
     day,
     from: zonedTimeToUtc(day, 0, club.timeZone),
-    to: zonedTimeToUtc(day, MINUTES_PER_DAY, club.timeZone),
+    to: zonedTimeToUtc(day, closesAt, club.timeZone),
     days: 1,
   }
 }
